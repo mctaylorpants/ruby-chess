@@ -4,6 +4,7 @@ class Piece
   include ChessHelpers
   attr_reader :position
   attr_reader :owner # which player owns this piece?
+  attr_reader :type  # not set here, but it will be set by each piece 
 
   def initialize(game, owner)
     @game     = game

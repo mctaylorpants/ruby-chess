@@ -4,6 +4,7 @@ class Pawn < Piece
 
   def initialize(game, owner)
     super
+    @type = :pawn
 
     # each array within possible_offsets is an x,y offset from the current
     #  position of the piece. the resulting target coordinates will be
