@@ -1,5 +1,14 @@
 CHESS
 
+Play
+  - "a3"
+  - (selects piece at a3, if it exists, or returns false)
+  - (shows possible moves on board)
+  - "b5"
+  - (moves that piece to the coordinate specified)
+  - (processes any logic that needs to happen, like killing a unit)
+
+
 Game Object
   - creates a board object to hold game state
   - handles player input
