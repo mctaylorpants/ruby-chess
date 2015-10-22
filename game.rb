@@ -1,7 +1,8 @@
 require "byebug" # for debugging purposes
 
+require "./lib/board.rb"
+require "./display.rb"
 require "./player.rb"
-require "./board.rb"
 require "./pawn.rb"
 require "./rook.rb"
 require "./knight.rb"
@@ -12,15 +13,24 @@ require "./queen.rb"
 class Game
   # game objects
   attr_reader :board
+  attr_reader :display
 
   def initialize
     @board = Board.new
-    @player1 = Player.new("Player 1")
-    @player2 = Player.new("Player 2")
+    @display = Display.new board: @board
+    @player1 = Player.new "Player 1"
+    @player2 = Player.new "Player 2"
     add_pieces
+
+    main_loop
   end
 
   private
+  def main_loop
+    # this will control the graphics, player input, etc.
+    @display.update
+  end
+
   def add_pieces
     # builds each piece for each player and puts it on the board.
     # TODO: use metaprogramming to automatically instantiate the objects
