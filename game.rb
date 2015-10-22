@@ -1,6 +1,6 @@
 require "byebug" # for debugging purposes
 
-require "./lib/board.rb"
+require "./board.rb"
 require "./display.rb"
 require "./player.rb"
 require "./pawn.rb"

@@ -4,4 +4,11 @@ module ChessHelpers
     arr_1.each_with_index { |element, index| arr << arr_1[index] + arr_2[index] }
     arr # matey!
   end
+
+  def array_pos_for(i)
+    # offsets the coordinate position to return the correct element in the array.
+    i - 1
+  end
+
+
 end
