@@ -3,15 +3,19 @@ require "./chess_helpers.rb"
 class Piece
   include ChessHelpers
   attr_reader :position
+  attr_reader :owner # which player owns this piece?
 
-  def initialize(game)
+  def initialize(game, owner)
     @game     = game
+    @owner    = owner
+
     @position = [-1,-1]
     @possible_offsets = []
   end
 
-  def add_to_board_at(pos_x, pos_y)
-    @game.board.add_piece self, pos_x, pos_y
+  def add_to_board_at(pos_arr)
+    @game.board.add_piece self, pos_arr
+    pos_x, pos_y = pos_arr
     @position = [pos_x, pos_y]
   end
 
@@ -25,7 +29,7 @@ class Piece
   #     as well as what other pieces may be in the way
   current_position = position
   all_possible_moves = []
-  byebug
+
   @possible_offsets.each do |pos|
     target_pos = coord_add(current_position, pos)
 

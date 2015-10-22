@@ -2,7 +2,8 @@ require "./piece.rb"
 
 class Knight < Piece
 
-  def initialize(game)
+  def initialize(game, owner)
+    # TODO: when I pass it game, it's just passing a reference, right?
     super
 
     # each array within possible_offsets is an x,y offset from the current
