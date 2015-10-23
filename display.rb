@@ -71,7 +71,7 @@ class Display
       puts ""
     end
 
-    puts " a   b   c   d   e   f   g   h ".colorize(color: :green)
+    puts "*  a   b   c   d   e   f   g   h ".colorize(color: :green)
 
   end
 end
