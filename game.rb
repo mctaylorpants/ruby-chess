@@ -14,12 +14,15 @@ class Game
   # game objects
   attr_reader :board
   attr_reader :display
+  attr_reader :state # this will hold the game's "state". is it player 1's turn?
+                     #   has the player selected a piece? etc
 
   def initialize
     @board = Board.new
     @display = Display.new board: @board
-    @player1 = Player.new "Player 1"
-    @player2 = Player.new "Player 2"
+    @player1 = Player.new "Player 1", :bottom
+    @player2 = Player.new "Player 2", :top
+    @state   = :player_1_turn
     add_pieces
 
     main_loop
@@ -28,7 +31,27 @@ class Game
   private
   def main_loop
     # this will control the graphics, player input, etc.
-    @display.update
+    while true
+      @display.update
+      prompt_for @state
+      input = gets.chomp
+      exit if input == "exit"
+      process_command input
+    end # while true
+  end
+
+  def prompt_for(state)
+    # this determines what to display in each circumstance.
+    case state
+    when :player_1_turn
+      string = "(Player 1 bottom) Select a piece"
+    end
+
+    print string + " > "
+  end
+
+  def process_command(x)
+    # takes the user's string and decides what to do with it.
   end
 
   def add_pieces

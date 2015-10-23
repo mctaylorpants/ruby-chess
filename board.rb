@@ -1,4 +1,5 @@
 require "./nil_piece.rb"
+require "./nil_player.rb"
 
 class Board
   include ChessHelpers
@@ -56,7 +57,9 @@ class Board
     #     column (y), and each inner element is a row (x).
     # - the objects are stored in the columns, but we set them to nil
     #     until we add pieces
-    n = NilPiece.new(nil, nil) # see the NilPiece class for details
+
+    n = NilPiece.new(nil, NilPlayer.new(nil, nil)) 
+      # see the NilPiece and NilPlayer class for details
 
     @pieces =
               [
