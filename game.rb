@@ -35,7 +35,6 @@ class Game
       @display.update
       prompt_for @state
       input = gets.chomp
-      exit if input == "exit"
       process_command input
     end # while true
   end
@@ -44,7 +43,7 @@ class Game
     # this determines what to display in each circumstance.
     case state
     when :player_1_turn
-      string = "(Player 1 bottom) Select a piece"
+      string = "(Player 1 bottom) Select a piece (e.g. a4)"
     end
 
     print string + " > "
@@ -52,6 +51,16 @@ class Game
 
   def process_command(x)
     # takes the user's string and decides what to do with it.
+    case x
+    when "exit", "x"
+      exit
+    when x[/^[a^-zA-Z][0-9]$/]
+      # matches two-character commands beginning with a letter
+      #   and ending with a number.
+      @state == :player_1_turn ? :player_2_turn : :player_1_turn
+      raise @state
+    end
+
   end
 
   def add_pieces
