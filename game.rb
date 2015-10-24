@@ -1,4 +1,5 @@
 require "byebug" # for debugging purposes
+require "colorize"
 
 require "./board.rb"
 require "./display.rb"
@@ -47,7 +48,7 @@ class Game
   def main_loop
     # this will control the graphics, player input, etc.
     while true
-      @display.update
+      display.update
       prompt_for @state
       input = gets.chomp
       process_command input
@@ -74,14 +75,16 @@ class Game
     when cmd[/^[a^-zA-Z][0-9]$/]
       # matches two-character commands beginning with a letter
       #   and ending with a number.
-      byebug
       case @state
       when :select_piece
         piece = board.piece_at(pos_for_coord(cmd))
         if piece.owner == @cur_player
           @state = :move_piece
-          # TODO: display possible moves
-          raise board.possible_moves_for(piece).inspect
+          # TODO: display.highlight_square coord
+          possible_moves = board.possible_moves_for(piece)
+          possible_moves.each do |coord|
+            display.paint_square coord, :possible_move_square
+          end
         end
 
 

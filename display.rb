@@ -1,4 +1,5 @@
 require "colorize"
+require "./chess_helpers"
 
 # colorize examples:
 # puts "This is blue".colorize(:blue)
@@ -14,11 +15,13 @@ require "colorize"
 
 class Display
   # guess what - display will handle the graphics!
+  include ChessHelpers
 
   def initialize(board:)
     # pass Display a board object so it can read it
     @buffer = []
     @board = board
+    @buf_replace = [ [],[],[],[],[],[],[],[] ] # for adding highlights and possible moves to the buffer
   end
 
   def update
@@ -26,23 +29,40 @@ class Display
     buffer_print
   end
 
-  def icon_for(piece_type, home_base)
+  def highlight_square(coord)
+    # highlights a specific square
+  end
+
+  def paint_square(coord_arr, type)
+    # replaces the contents of a square
+    sep = " "
+    x = array_pos_for coord_arr[0]
+    y = array_pos_for coord_arr[1]
+    # y and x are intentionally reversed!
+    @buf_replace[y][x] = icon_for(:poss_move)
+  end
+
+  private
+  def icon_for(piece_type, home_base=nil)
     # serves up a string icon for each piece.
     sep = " "
     if home_base == :top
       team_colour = :red
     elsif home_base == :bottom
       team_colour = :blue
+    else
+      team_colour = :light_white
     end
 
     case piece_type
-    when nil;       icon = "   ".colorize(background: :light_white).underline
-    when :rook;     icon = " # ".colorize(color: :white, background: team_colour).underline
-    when :knight;   icon = " & ".colorize(color: :white, background: team_colour).underline
-    when :bishop;   icon = " ! ".colorize(color: :white, background: team_colour).underline
-    when :king;     icon = " + ".colorize(color: :white, background: team_colour).underline
-    when :queen;    icon = " * ".colorize(color: :white, background: team_colour).underline
-    when :pawn;     icon = " - ".colorize(color: :white, background: team_colour).underline
+    when nil;           icon = "   ".colorize(background: team_colour).underline
+    when :rook;         icon = " # ".colorize(color: :white, background: team_colour).underline
+    when :knight;       icon = " & ".colorize(color: :white, background: team_colour).underline
+    when :bishop;       icon = " ! ".colorize(color: :white, background: team_colour).underline
+    when :king;         icon = " + ".colorize(color: :white, background: team_colour).underline
+    when :queen;        icon = " * ".colorize(color: :white, background: team_colour).underline
+    when :pawn;         icon = " - ".colorize(color: :white, background: team_colour).underline
+    when :poss_move;    icon = " • ".colorize(color: :white, background: :light_magenta).blink
     end # case
 
     node = "#{icon}#{sep}"
@@ -60,6 +80,17 @@ class Display
 
       r
     end # end @buffer=
+    if @buf_replace.any?
+      # merge the contents of @buf_replace into the buffer
+      @buf_replace.each_with_index do |outer_element, outer_index|
+        outer_element.each_with_index do |inner_element, inner_index|
+          @buffer[outer_index][inner_index] = inner_element unless !inner_element
+        end
+      end
+
+      @buf_replace = [ [],[],[],[],[],[],[],[] ]
+    end
+
 
   end
 
