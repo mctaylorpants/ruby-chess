@@ -53,7 +53,7 @@ class Game
     @flash      = "" # for error messages, etc
     @cur_player = @player1
     @cur_piece  = nil # once a player selects a piece, this stores it
-    @cur_possible_moves = nil # stores an array of the moves available to
+    @cur_possible_moves = nil # stores hash of the moves available to
                               #    the currently-selected piece
     add_pieces
     main_loop
@@ -81,7 +81,7 @@ class Game
     when :select_piece
       string = "(#{@cur_player.name} #{@cur_player.home_base}) Select a piece (e.g. d2)"
     when :move_piece
-      string = "(#{@cur_player.name} #{@cur_player.home_base}) Select a highlighted tile"
+      string = "(#{@cur_player.name} #{@cur_player.home_base}) Select a highlighted tile (or type 'cancel')"
     end
     print string + " > "
 
@@ -92,6 +92,8 @@ class Game
     case cmd
     when "exit", "x"
       exit
+    when "cancel"
+      process_command cmd
     when cmd[/^[a^-zA-Z][0-9]$/]
       # matches two-character commands beginning with a letter
       #   and ending with a number.
@@ -105,18 +107,21 @@ class Game
     when :select_piece
       select_piece board.piece_at(pos_for_coord(cmd))
     when :move_piece
-      move_piece_to(pos_for_coord(cmd))
+      if cmd == "cancel"
+        @state = :select_piece
+      else
+        move_piece_to(pos_for_coord(cmd))
+      end
     end
-
   end
 
   def select_piece(piece)
     if piece.owner == @cur_player
       @state = :move_piece
       @cur_piece = piece
-      @cur_possible_moves = possible_moves_for(piece)
-      @cur_possible_moves.each do |coord|
-        display.paint_square coord, :possible_move_square
+      @cur_possible_moves = possible_moves_for @cur_piece
+      @cur_possible_moves.each do |coord, move_type|
+        display.paint_square coord, move_type
       end
     else
       @flash = FLASH_MESSAGES[:invalid_selection]
@@ -124,7 +129,7 @@ class Game
   end
 
   def move_piece_to(coord)
-    if @cur_piece && move_is_legal?(coord)
+    if @cur_piece && move_is_valid?(coord)
       board.move_piece(@cur_piece, coord)
       toggle_player
     else
@@ -133,11 +138,12 @@ class Game
     end
   end
 
-  def move_is_legal?(proposed_move)
-    @cur_possible_moves.include? proposed_move
+  def move_is_valid?(proposed_move)
+    @cur_possible_moves.keys.include? proposed_move
   end
 
   def toggle_player
+    @cur_player.increment_move_count
     @cur_player = other_player
     @state = :select_piece
   end
@@ -153,38 +159,36 @@ class Game
     #   - collide with another piece owned by the player
     #   - collide with any piece along its way to the tile (rooks, queens, etc)
     #   - allow checkmate
-    legal_moves = []
+    legal_moves = {}
     this_pos = this_piece.position
 
     if this_piece.jumps_to_target
       this_piece.possible_offsets.each do |offset|
         potential_position = coord_add(this_pos, offset)
-        legal_moves << potential_position if potential_position[0] <= BOARD_MAX_COORD_X &&
-                                             potential_position[1] <= BOARD_MAX_COORD_Y &&
-                                             potential_position[0] > 0 &&
-                                             potential_position[1] > 0 &&
-                                             this_piece.owner != board.piece_at(potential_position).owner
-      end
+        if is_a_legal_move?(this_piece, potential_position)
+          legal_moves[potential_position] = :possible_move_square
+        end
+      end # possible_offsets.each
     else
-      legal_moves = walk_path(this_piece)
+      legal_moves = generate_moves_along_path(this_piece)
     end
 
     legal_moves
   end
 
-  def walk_path(this_piece)
+  def generate_moves_along_path(this_piece)
     # for each move, walk the path between the current position
     #   and the target position. return when we hit another piece
     #   or the edge of the board
-    legal_moves = []
+    legal_moves = {}
     this_piece.possible_offsets.each do |offset|
       # we have an array of a potential offset (e.g. [1,0])
       illegal = false
       this_pos = this_piece.position
       until illegal == true
         potential_position = coord_add(this_pos, offset)
-        if is_a_legal_move(potential_position)
-          legal_moves << potential_position
+        if is_a_legal_move?(this_piece, potential_position)
+          legal_moves[potential_position] = :possible_move_square
           this_pos = potential_position
           illegal = true if board.piece_at(this_pos).owner == other_player
         else
@@ -196,12 +200,12 @@ class Game
     legal_moves
   end
 
-  def is_a_legal_move(coord_arr)
+  def is_a_legal_move?(piece, coord_arr)
     coord_arr[0] <= BOARD_MAX_COORD_X &&
     coord_arr[1] <= BOARD_MAX_COORD_Y &&
     coord_arr[0] > 0 &&
     coord_arr[1] > 0 &&
-    @cur_piece.owner != board.piece_at(coord_arr).owner
+    piece.owner != board.piece_at(coord_arr).owner
   end
 
   def other_player
