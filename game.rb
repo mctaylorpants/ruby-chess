@@ -144,7 +144,7 @@ class Game
     legal_moves = []
     this_pos = this_piece.position
 
-    if this_piece.type == :knight
+    if this_piece.jumps_to_target
       this_piece.possible_offsets.each do |offset|
         potential_position = coord_add(this_pos, offset)
         legal_moves << potential_position if potential_position[0] <= BOARD_MAX_COORD_X &&
@@ -152,11 +152,6 @@ class Game
                                              potential_position[0] > 0 &&
                                              potential_position[1] > 0 &&
                                              this_piece.owner != board.piece_at(potential_position).owner
-      end
-    elsif this_piece.type == :pawn
-      this_piece.possible_offsets.each do |offset|
-        potential_position = coord_add(this_pos, offset)
-        legal_moves << potential_position if potential_position[0] <= BOARD_MAX_COORD_X && potential_position[1] <= BOARD_MAX_COORD_Y && this_piece.owner != board.piece_at(potential_position).owner
       end
     else
       legal_moves = walk_path(this_piece)
@@ -218,8 +213,8 @@ class Game
     (Rook.new(self, player)).add_to_board_at    [1,1]
     (Knight.new(self, player)).add_to_board_at  [2,1]
     (Bishop.new(self, player)).add_to_board_at  [3,1]
-    (King.new(self, player)).add_to_board_at    [4,1]
-    (Queen.new(self, player)).add_to_board_at   [5,1]
+    (Queen.new(self, player)).add_to_board_at   [4,1]
+    (King.new(self, player)).add_to_board_at    [5,1]
     (Bishop.new(self, player)).add_to_board_at  [6,1]
     (Knight.new(self, player)).add_to_board_at  [7,1]
     (Rook.new(self, player)).add_to_board_at    [8,1]
@@ -238,8 +233,8 @@ class Game
     (Rook.new(self, player)).add_to_board_at    [1,8]
     (Knight.new(self, player)).add_to_board_at  [2,8]
     (Bishop.new(self, player)).add_to_board_at  [3,8]
-    (King.new(self, player)).add_to_board_at    [4,8]
-    (Queen.new(self, player)).add_to_board_at   [5,8]
+    (Queen.new(self, player)).add_to_board_at   [4,8]
+    (King.new(self, player)).add_to_board_at    [5,8]
     (Bishop.new(self, player)).add_to_board_at  [6,8]
     (Knight.new(self, player)).add_to_board_at  [7,8]
     (Rook.new(self, player)).add_to_board_at    [8,8]

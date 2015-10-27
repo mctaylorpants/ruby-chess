@@ -7,6 +7,7 @@ class Piece
   attr_reader :type  # not set here, but it will be set by each piece
   attr_reader :rotation
   attr_reader :possible_offsets
+  attr_reader :jumps_to_target
 
   def initialize(game, owner)
     @game     = game
@@ -14,6 +15,7 @@ class Piece
 
     @position = [-1,-1]
     @possible_offsets = []
+    @jumps_to_target = false # kings and pawns can only move one tile at a time
 
     # @possible_offsets below is written using the "bottom" pieces as reference.
     #   so, when moving top pieces, we need to rotate the coordinates by 180

@@ -3,9 +3,9 @@ require "./piece.rb"
 class Knight < Piece
 
   def initialize(game, owner)
-    # TODO: when I pass it game, it's just passing a reference, right?
     super
     @type = :knight
+    @jumps_to_target = true
 
     # each array within possible_offsets is an x,y offset from the current
     #  position of the piece. the resulting target coordinates will be
