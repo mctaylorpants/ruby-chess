@@ -33,6 +33,9 @@ class Game
                         "g" => 7,
                         "h" => 8 }
 
+  BOARD_MAX_COORD_X = 8
+  BOARD_MAX_COORD_Y = 8
+
   def initialize
     @board      = Board.new
     @display    = Display.new board: @board
@@ -99,7 +102,7 @@ class Game
     if piece.owner == @cur_player
       @state = :move_piece
       @cur_piece = piece
-      @cur_possible_moves = board.possible_moves_for(piece)
+      @cur_possible_moves = possible_moves_for(piece)
       @cur_possible_moves.each do |coord|
         display.paint_square coord, :possible_move_square
       end
@@ -128,6 +131,25 @@ class Game
 
     @state = :select_piece
   end
+
+  def possible_moves_for(this_piece)
+    # given a piece, returns a new array containing all the
+    #   valid moves on the board, and the result that each move would have
+    #   (e.g. 'move', 'kill', 'check', 'checkmate'.) the result is used to
+    #   show the player what that move would do.
+    #
+    # this method removes moves that would:
+    #   - go off the board
+    #   - collide with another piece owned by the player
+    #   - allow checkmate
+
+    legal_moves = this_piece.possible_moves.select do |move_pos|
+      move_pos[0] <= BOARD_MAX_COORD_X &&
+      move_pos[1] <= BOARD_MAX_COORD_Y &&
+      this_piece.owner != board.piece_at(move_pos).owner
+    end
+  end
+
 
   def pos_for_coord(coord_string)
     # converts a board coordinate (e.g. a4) into a proper coordinate
