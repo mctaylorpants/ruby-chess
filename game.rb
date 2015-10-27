@@ -161,6 +161,8 @@ class Game
     #   - allow checkmate
     legal_moves = generate_moves_along_path(this_piece)
 
+    # TODO: add special movement rules here depending on the piece
+
     legal_moves
   end
 
