@@ -2,9 +2,9 @@ require "./chess_helpers.rb"
 
 class Piece
   include ChessHelpers
-  attr_reader :position
+  attr_accessor :position
   attr_reader :owner # which player owns this piece?
-  attr_reader :type  # not set here, but it will be set by each piece 
+  attr_reader :type  # not set here, but it will be set by each piece
 
   def initialize(game, owner)
     @game     = game
@@ -28,19 +28,19 @@ class Piece
   #     filter out other coordinates that may be off the board. this should be
   #     the board's responsibility since it knows things like how big it is,
   #     as well as what other pieces may be in the way
-  current_position = position
-  all_possible_moves = []
+    current_position = position
+    all_possible_moves = []
 
-  @possible_offsets.each do |pos|
-    target_pos = coord_add(current_position, pos)
+    @possible_offsets.each do |pos|
+      target_pos = coord_add(current_position, pos)
 
-    if target_pos[0] > 0 && target_pos[1] > 0
-      all_possible_moves << target_pos
+      if target_pos[0] > 0 && target_pos[1] > 0
+        all_possible_moves << target_pos
+      end
     end
+
+    all_possible_moves
   end
 
-  all_possible_moves
-end
 
-
-end
+end # class

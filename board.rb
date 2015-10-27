@@ -31,6 +31,21 @@ class Board
     pieces[array_pos_for pos_y][array_pos_for pos_x]
   end
 
+  def move_piece(piece, pos_arr)
+    # moves a piece on the board; returns the existing piece if one was
+    #   there already.
+    cur_pos_x, cur_pos_y = piece.position
+    new_pos_x, new_pos_y = pos_arr
+
+    # replace the old position with an empty square
+    add_piece new_nil_piece, piece.position
+
+    # add the piece to the new position
+    add_piece piece, pos_arr
+
+    piece.position = [new_pos_x, new_pos_y]
+  end
+
   def possible_moves_for(this_piece)
     # given a piece, returns a new array containing all the
     #   valid moves on the board, and the result that each move would have
@@ -58,7 +73,7 @@ class Board
     # - the objects are stored in the columns, but we set them to nil
     #     until we add pieces
 
-    n = NilPiece.new(nil, NilPlayer.new(nil, nil)) 
+    n = new_nil_piece
       # see the NilPiece and NilPlayer class for details
 
     @pieces =
@@ -72,6 +87,10 @@ class Board
                 [n, n, n, n, n, n, n, n],
                 [n, n, n, n, n, n, n, n],
               ]
+  end
+
+  def new_nil_piece
+    NilPiece.new(nil, NilPlayer.new(nil, nil))
   end
 
 

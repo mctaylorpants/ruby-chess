@@ -40,9 +40,14 @@ class Game
     @player2    = Player.new "Player 2", :top
     @state      = GAME_STATES[0] # select_piece
     @cur_player = @player1
+    @cur_piece  = nil # once a player selects a piece, this stores it
+    @cur_possible_moves = nil # stores an array of the moves available to
+                              #    the currently-selected piece
     add_pieces
     main_loop
   end
+
+
 
   private
   def main_loop
@@ -51,7 +56,7 @@ class Game
       display.update
       prompt_for @state
       input = gets.chomp
-      process_command input
+      parse input
     end # while true
   end
 
@@ -67,7 +72,7 @@ class Game
 
   end
 
-  def process_command(cmd)
+  def parse(cmd)
     # takes the user's string and decides what to do with it.
     case cmd
     when "exit", "x"
@@ -75,23 +80,53 @@ class Game
     when cmd[/^[a^-zA-Z][0-9]$/]
       # matches two-character commands beginning with a letter
       #   and ending with a number.
-      case @state
-      when :select_piece
-        piece = board.piece_at(pos_for_coord(cmd))
-        if piece.owner == @cur_player
-          @state = :move_piece
-          # TODO: display.highlight_square coord
-          possible_moves = board.possible_moves_for(piece)
-          possible_moves.each do |coord|
-            display.paint_square coord, :possible_move_square
-          end
-        end
-
-
-      end
-
+      process_command cmd
     end
 
+  end
+
+  def process_command(cmd)
+    case @state
+    when :select_piece
+      select_piece board.piece_at(pos_for_coord(cmd))
+    when :move_piece
+      move_piece_to(pos_for_coord(cmd))
+    end
+
+  end
+
+  def select_piece(piece)
+    if piece.owner == @cur_player
+      @state = :move_piece
+      @cur_piece = piece
+      @cur_possible_moves = board.possible_moves_for(piece)
+      @cur_possible_moves.each do |coord|
+        display.paint_square coord, :possible_move_square
+      end
+    end
+  end
+
+  def move_piece_to(coord)
+    if @cur_piece && move_is_legal?(coord)
+      board.move_piece(@cur_piece, coord)
+      toggle_player
+    else
+      select_piece @cur_piece
+    end
+  end
+
+  def move_is_legal?(proposed_move)
+    @cur_possible_moves.include? proposed_move
+  end
+
+  def toggle_player
+    if @cur_player = @player1
+      @cur_player = @player2
+    else
+      @cur_player = @player1
+    end
+
+    @state = :select_piece
   end
 
   def pos_for_coord(coord_string)
