@@ -159,19 +159,7 @@ class Game
     #   - collide with another piece owned by the player
     #   - collide with any piece along its way to the tile (rooks, queens, etc)
     #   - allow checkmate
-    legal_moves = {}
-    this_pos = this_piece.position
-
-    if this_piece.jumps_to_target
-      this_piece.possible_offsets.each do |offset|
-        potential_position = coord_add(this_pos, offset)
-        if is_a_legal_move?(this_piece, potential_position)
-          legal_moves[potential_position] = :possible_move_square
-        end
-      end # possible_offsets.each
-    else
-      legal_moves = generate_moves_along_path(this_piece)
-    end
+    legal_moves = generate_moves_along_path(this_piece)
 
     legal_moves
   end
@@ -181,22 +169,26 @@ class Game
     #   and the target position. return when we hit another piece
     #   or the edge of the board
     legal_moves = {}
+
     this_piece.possible_offsets.each do |offset|
-      # we have an array of a potential offset (e.g. [1,0])
-      illegal = false
       this_pos = this_piece.position
-      until illegal == true
+
+      while true
         potential_position = coord_add(this_pos, offset)
-        if is_a_legal_move?(this_piece, potential_position)
-          legal_moves[potential_position] = :possible_move_square
-          this_pos = potential_position
-          illegal = true if board.piece_at(this_pos).owner == other_player
+        break unless is_a_legal_move?(this_piece, potential_position)
+
+        if board.piece_at(potential_position).owner == other_player
+          legal_moves[potential_position] = :capture_piece
+          break
         else
-          illegal = true
+          legal_moves[potential_position] = :possible_move_square
+          break if this_piece.jumps_to_target
         end
 
-      end # until illegal == true
+        this_pos = potential_position
+      end # while true
     end # possible_offsets
+
     legal_moves
   end
 
