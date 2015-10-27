@@ -120,7 +120,7 @@ class Game
   end
 
   def toggle_player
-    if @cur_player = @player1
+    if @cur_player == @player1
       @cur_player = @player2
     else
       @cur_player = @player1
