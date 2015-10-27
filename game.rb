@@ -75,7 +75,8 @@ class Game
 
   def prompt_for(state)
     # this determines what to display in each circumstance.
-    puts @flash if @flash
+    puts @flash.colorize(color: :blue) if @flash
+    puts " "
 
     case state
     when :select_piece
@@ -183,7 +184,7 @@ class Game
           legal_moves[potential_position] = :capture_piece
           break
         else
-          legal_moves[potential_position] = :possible_move_square
+          legal_moves[potential_position] = :poss_move
           break if this_piece.jumps_to_target
         end
 
