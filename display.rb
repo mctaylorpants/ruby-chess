@@ -95,6 +95,7 @@ class Display
   end
 
   def buffer_print
+    system "clear" # clears the screen
     # prints the current buffer to the screen
     @buffer.reverse.each_with_index do |line, index|
       index_colored = "#{8 - index}".colorize(color: :green)
