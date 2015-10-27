@@ -36,6 +36,11 @@ class Game
                         "g" => 7,
                         "h" => 8 }
 
+  FLASH_MESSAGES = {
+    :invalid_selection => "Invalid selection!",
+    :invalid_move => "Invalid move! Try again."
+  }
+
   BOARD_MAX_COORD_X = 8
   BOARD_MAX_COORD_Y = 8
 
@@ -45,6 +50,7 @@ class Game
     @player1    = Player.new "Player 1", :bottom
     @player2    = Player.new "Player 2", :top
     @state      = GAME_STATES[0] # select_piece
+    @flash      = "" # for error messages, etc
     @cur_player = @player1
     @cur_piece  = nil # once a player selects a piece, this stores it
     @cur_possible_moves = nil # stores an array of the moves available to
@@ -61,6 +67,7 @@ class Game
     while true
       display.update
       prompt_for @state
+      @flash = ""
       input = gets.chomp
       parse input
     end # while true
@@ -68,6 +75,8 @@ class Game
 
   def prompt_for(state)
     # this determines what to display in each circumstance.
+    puts @flash if @flash
+
     case state
     when :select_piece
       string = "(#{@cur_player.name} #{@cur_player.home_base}) Select a piece (e.g. d2)"
@@ -109,6 +118,8 @@ class Game
       @cur_possible_moves.each do |coord|
         display.paint_square coord, :possible_move_square
       end
+    else
+      @flash = FLASH_MESSAGES[:invalid_selection]
     end
   end
 
@@ -117,6 +128,7 @@ class Game
       board.move_piece(@cur_piece, coord)
       toggle_player
     else
+      @flash = FLASH_MESSAGES[:invalid_move]
       select_piece @cur_piece
     end
   end
