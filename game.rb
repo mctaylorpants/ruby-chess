@@ -1,6 +1,7 @@
 require "byebug" # for debugging purposes
 require "colorize"
 
+require "./chess_helpers.rb"
 require "./board.rb"
 require "./display.rb"
 require "./player.rb"
@@ -12,6 +13,8 @@ require "./king.rb"
 require "./queen.rb"
 
 class Game
+  include ChessHelpers
+
   # game objects
   attr_reader :board
   attr_reader :display
@@ -123,12 +126,7 @@ class Game
   end
 
   def toggle_player
-    if @cur_player == @player1
-      @cur_player = @player2
-    else
-      @cur_player = @player1
-    end
-
+    @cur_player = other_player
     @state = :select_piece
   end
 
@@ -141,15 +139,67 @@ class Game
     # this method removes moves that would:
     #   - go off the board
     #   - collide with another piece owned by the player
+    #   - collide with any piece along its way to the tile (rooks, queens, etc)
     #   - allow checkmate
+    legal_moves = []
+    this_pos = this_piece.position
 
-    legal_moves = this_piece.possible_moves.select do |move_pos|
-      move_pos[0] <= BOARD_MAX_COORD_X &&
-      move_pos[1] <= BOARD_MAX_COORD_Y &&
-      this_piece.owner != board.piece_at(move_pos).owner
+    if this_piece.type == :knight
+      this_piece.possible_offsets.each do |offset|
+        potential_position = coord_add(this_pos, offset)
+        legal_moves << potential_position if potential_position[0] <= BOARD_MAX_COORD_X &&
+                                             potential_position[1] <= BOARD_MAX_COORD_Y &&
+                                             potential_position[0] > 0 &&
+                                             potential_position[1] > 0 &&
+                                             this_piece.owner != board.piece_at(potential_position).owner
+      end
+    elsif this_piece.type == :pawn
+      this_piece.possible_offsets.each do |offset|
+        potential_position = coord_add(this_pos, offset)
+        legal_moves << potential_position if potential_position[0] <= BOARD_MAX_COORD_X && potential_position[1] <= BOARD_MAX_COORD_Y && this_piece.owner != board.piece_at(potential_position).owner
+      end
+    else
+      legal_moves = walk_path(this_piece)
     end
+
+    legal_moves
   end
 
+  def walk_path(this_piece)
+    # for each move, walk the path between the current position
+    #   and the target position. return when we hit another piece
+    #   or the edge of the board
+    legal_moves = []
+    this_piece.possible_offsets.each do |offset|
+      # we have an array of a potential offset (e.g. [1,0])
+      illegal = false
+      this_pos = this_piece.position
+      until illegal == true
+        potential_position = coord_add(this_pos, offset)
+        if is_a_legal_move(potential_position)
+          legal_moves << potential_position
+          this_pos = potential_position
+          illegal = true if board.piece_at(this_pos).owner == other_player
+        else
+          illegal = true
+        end
+
+      end # until illegal == true
+    end # possible_offsets
+    legal_moves
+  end
+
+  def is_a_legal_move(coord_arr)
+    coord_arr[0] <= BOARD_MAX_COORD_X &&
+    coord_arr[1] <= BOARD_MAX_COORD_Y &&
+    coord_arr[0] > 0 &&
+    coord_arr[1] > 0 &&
+    @cur_piece.owner != board.piece_at(coord_arr).owner
+  end
+
+  def other_player
+    @cur_player == @player1 ? @player2 : @player1
+  end
 
   def pos_for_coord(coord_string)
     # converts a board coordinate (e.g. a4) into a proper coordinate
