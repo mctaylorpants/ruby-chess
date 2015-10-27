@@ -33,13 +33,13 @@ class Display
     # highlights a specific square
   end
 
-  def paint_square(coord_arr, type)
+  def paint_square(coord_arr, move_type)
     # replaces the contents of a square
     sep = " "
     x = array_pos_for coord_arr[0]
     y = array_pos_for coord_arr[1]
     # y and x are intentionally reversed!
-    @buf_replace[y][x] = icon_for(:poss_move)
+    @buf_replace[y][x] = icon_for(move_type)
   end
 
   private
@@ -55,14 +55,15 @@ class Display
     end
 
     case piece_type
-    when nil;           icon = "   ".colorize(background: team_colour).underline
-    when :rook;         icon = " # ".colorize(color: :white, background: team_colour).underline
-    when :knight;       icon = " & ".colorize(color: :white, background: team_colour).underline
-    when :bishop;       icon = " ! ".colorize(color: :white, background: team_colour).underline
-    when :king;         icon = " + ".colorize(color: :white, background: team_colour).underline
-    when :queen;        icon = " * ".colorize(color: :white, background: team_colour).underline
-    when :pawn;         icon = " - ".colorize(color: :white, background: team_colour).underline
-    when :poss_move;    icon = " • ".colorize(color: :white, background: :light_magenta).blink
+    when nil;             icon = "   ".colorize(background: team_colour).underline
+    when :rook;           icon = " # ".colorize(color: :white, background: team_colour).underline
+    when :knight;         icon = " & ".colorize(color: :white, background: team_colour).underline
+    when :bishop;         icon = " ! ".colorize(color: :white, background: team_colour).underline
+    when :king;           icon = " + ".colorize(color: :white, background: team_colour).underline
+    when :queen;          icon = " * ".colorize(color: :white, background: team_colour).underline
+    when :pawn;           icon = " - ".colorize(color: :white, background: team_colour).underline
+    when :poss_move;      icon = " • ".colorize(color: :white, background: :light_magenta).blink
+    when :capture_piece;  icon = " X ".colorize(color: :white, background: :light_red).blink
     end # case
 
     node = "#{icon}#{sep}"
@@ -97,13 +98,16 @@ class Display
   def buffer_print
     system "clear" # clears the screen
     # prints the current buffer to the screen
+    puts "•  a   b   c   d   e   f   g   h   •".colorize(color: :green)
+    puts " "
+
     @buffer.reverse.each_with_index do |line, index|
       index_colored = "#{8 - index}".colorize(color: :green)
-      puts "#{index_colored} #{line.join("")}"
+      puts "#{index_colored} #{line.join("")} #{index_colored}"
       puts ""
     end
 
-    puts "*  a   b   c   d   e   f   g   h ".colorize(color: :green)
+    puts "•  a   b   c   d   e   f   g   h   •".colorize(color: :green)
 
   end
 end
