@@ -78,11 +78,13 @@ class Game
     puts @flash.colorize(color: :blue) if @flash
     puts " "
 
+    prompt = "(#{@cur_player.name}, #{@cur_player.home_base})"
+
     case state
     when :select_piece
-      string = "(#{@cur_player.name} #{@cur_player.home_base}) Select a piece (e.g. a1)"
+      string = "#{prompt} Select a piece (e.g. a1)"
     when :move_piece
-      string = "(#{@cur_player.name} #{@cur_player.home_base}) Select a highlighted tile (or type 'cancel')"
+      string = "#{prompt} Select a highlighted tile (or type 'cancel')"
     when :game_won
       exit
     end
