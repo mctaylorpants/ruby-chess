@@ -240,7 +240,17 @@ class Game
         array_of_moves[opening_move] = :poss_move
       end
 
+      # pawn - en passant
+      # TODO
+
       # pawn - diagonal capture
+      # TODO
+
+      # pawn - promotion (should be implemented in another area)
+      # TODO
+
+    when :king
+      # king - castling
       # TODO
 
     end
