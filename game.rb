@@ -33,6 +33,7 @@ class Game
 
   FLASH_MESSAGES = {
     :invalid_selection => "Invalid selection!",
+    :no_moves_available => "No moves available for that piece",
     :invalid_move => "Invalid move! Try again.",
     :captured_piece => "You captured <PLAYER>'s <PIECE>!",
     :game_over => "<PLAYER> is victorious! Congratulations!"
@@ -124,8 +125,14 @@ class Game
       @state = :move_piece
       @cur_piece = piece
       @cur_possible_moves = possible_moves_for @cur_piece
-      @cur_possible_moves.each do |coord, move_type|
-        display.paint_square coord, move_type
+
+      if @cur_possible_moves.count == 0
+        @flash = FLASH_MESSAGES[:no_moves_available]
+        @state = :select_piece
+      else
+        @cur_possible_moves.each do |coord, move_type|
+          display.paint_square coord, move_type
+        end
       end
     else
       @flash = FLASH_MESSAGES[:invalid_selection]
