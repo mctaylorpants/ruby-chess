@@ -64,6 +64,7 @@ class Display
     when :pawn;           icon = " - ".colorize(color: :white, background: team_colour).underline
     when :poss_move;      icon = " • ".colorize(color: :white, background: :light_magenta).blink
     when :capture_piece;  icon = " X ".colorize(color: :white, background: :light_red).blink
+    when :win_square;     icon = " * ".colorize(color: :white, background: :green).blink
     end # case
 
     node = "#{icon}#{sep}"

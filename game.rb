@@ -21,11 +21,6 @@ class Game
   attr_reader :state # this will hold the game's "state". is it player 1's turn?
                      #   has the player selected a piece? etc
 
-  # using this plus the @cur_player variable, we determine what state the
-  #   game is in and how it should respond to commands.
-  GAME_STATES = [:select_piece,
-                :move_piece]
-
   # this is used to convert chess coordinates (e.g. a4) to standard x,y coords
   NUMBER_FOR_LETTER = { "a" => 1,
                         "b" => 2,
@@ -39,7 +34,8 @@ class Game
   FLASH_MESSAGES = {
     :invalid_selection => "Invalid selection!",
     :invalid_move => "Invalid move! Try again.",
-    :captured_piece => "You captured <PLAYER>'s <PIECE>!"
+    :captured_piece => "You captured <PLAYER>'s <PIECE>!",
+    :game_over => "<PLAYER> is victorious! Congratulations!"
   }
 
   BOARD_MAX_COORD_X = 8
@@ -50,7 +46,7 @@ class Game
     @display    = Display.new board: @board
     @player1    = Player.new "Player 1", :bottom
     @player2    = Player.new "Player 2", :top
-    @state      = GAME_STATES[0] # select_piece
+    @state      = :select_piece # select_piece
     @flash      = "" # for error messages, etc
     @cur_player = @player1
     @cur_piece  = nil # once a player selects a piece, this stores it
@@ -72,6 +68,7 @@ class Game
       prompt_for @state
       input = gets.chomp
       parse input
+      game_over if game_won
     end # while true
   end
 
@@ -85,6 +82,8 @@ class Game
       string = "(#{@cur_player.name} #{@cur_player.home_base}) Select a piece (e.g. a1)"
     when :move_piece
       string = "(#{@cur_player.name} #{@cur_player.home_base}) Select a highlighted tile (or type 'cancel')"
+    when :game_won
+      exit
     end
     print string + " > "
 
@@ -135,7 +134,6 @@ class Game
 
   def move_piece_to(coord)
     if @cur_piece && move_is_valid?(coord)
-       byebug
       check_for_captured_piece_at(coord)
       board.move_piece(@cur_piece, coord)
       toggle_player
@@ -250,6 +248,30 @@ class Game
     x = NUMBER_FOR_LETTER[coord_string[0]]
     y = coord_string[1].to_i
     [x, y]
+  end
+
+  def game_won
+    @cur_possible_moves = possible_moves_for @cur_piece
+    @cur_possible_moves.keys.each do |coord|
+      piece = board.piece_at coord
+      return true if piece.type == :king && piece.owner != @cur_piece.owner
+    end
+    false
+  end
+
+  def game_over
+    # we use other_player here because we've already toggled to the other
+    #   (defeated) player after moving the winning player's piece
+
+    # a quick move sequence for testing to get to checkmate quickly:
+    #   c2 -> c4, d7 -> d6, d1 -> a4 (player 1 wins)
+    @state = :game_won
+    @flash = FLASH_MESSAGES[:game_over].gsub("<PLAYER>", other_player.name)
+    (1..BOARD_MAX_COORD_X).each do |x|
+      (1..BOARD_MAX_COORD_Y).each do |y|
+        display.paint_square [x,y], :win_square
+      end
+    end
   end
 
   def add_pieces
