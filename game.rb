@@ -38,7 +38,8 @@ class Game
 
   FLASH_MESSAGES = {
     :invalid_selection => "Invalid selection!",
-    :invalid_move => "Invalid move! Try again."
+    :invalid_move => "Invalid move! Try again.",
+    :captured_piece => "You captured <PLAYER>'s <PIECE>!"
   }
 
   BOARD_MAX_COORD_X = 8
@@ -63,11 +64,12 @@ class Game
 
   private
   def main_loop
-    # this will control the graphics, player input, etc.
+    # this is the heart of the chess game. this loop will run over and over
+    #   until the user exits. it updates the screen, prompts the user based
+    #   on the current state of the game, and waits for input.
     while true
       display.update
       prompt_for @state
-      @flash = ""
       input = gets.chomp
       parse input
     end # while true
@@ -80,18 +82,20 @@ class Game
 
     case state
     when :select_piece
-      string = "(#{@cur_player.name} #{@cur_player.home_base}) Select a piece (e.g. d2)"
+      string = "(#{@cur_player.name} #{@cur_player.home_base}) Select a piece (e.g. a1)"
     when :move_piece
       string = "(#{@cur_player.name} #{@cur_player.home_base}) Select a highlighted tile (or type 'cancel')"
     end
     print string + " > "
+
+    @flash = ""
 
   end
 
   def parse(cmd)
     # takes the user's string and decides what to do with it.
     case cmd
-    when "exit", "x"
+    when "exit", "x", "q"
       exit
     when "cancel"
       process_command cmd
@@ -131,11 +135,22 @@ class Game
 
   def move_piece_to(coord)
     if @cur_piece && move_is_valid?(coord)
+       byebug
+      check_for_captured_piece_at(coord)
       board.move_piece(@cur_piece, coord)
       toggle_player
     else
       @flash = FLASH_MESSAGES[:invalid_move]
       select_piece @cur_piece
+    end
+  end
+
+  def check_for_captured_piece_at(coord)
+    piece = board.piece_at(coord)
+    if piece.owner == other_player
+      @flash = FLASH_MESSAGES[:captured_piece].\
+          gsub("<PLAYER>",piece.owner.name).\
+          gsub("<PIECE>",piece.type.to_s)
     end
   end
 
@@ -155,14 +170,13 @@ class Game
     #   (e.g. 'move', 'kill', 'check', 'checkmate'.) the result is used to
     #   show the player what that move would do.
     #
-    # this method removes moves that would:
-    #   - go off the board
-    #   - collide with another piece owned by the player
-    #   - collide with any piece along its way to the tile (rooks, queens, etc)
-    #   - allow checkmate
-    legal_moves = generate_moves_along_path(this_piece)
 
-    # TODO: add special movement rules here depending on the piece
+    # first, we generate all the physically possible moves on the board and
+    #   store them in legal_moves. however, we haven't added special moves
+    #   for pieces like pawns and kings, and we haven't removed moves that
+    #   would result in checkmate.
+    legal_moves = generate_moves_along_path(this_piece)
+    legal_moves = filter_special_moves this_piece, legal_moves
 
     legal_moves
   end
@@ -201,6 +215,30 @@ class Game
     coord_arr[0] > 0 &&
     coord_arr[1] > 0 &&
     piece.owner != board.piece_at(coord_arr).owner
+  end
+
+  def filter_special_moves(piece, legal_moves)
+    # with an array of moves and a piece, remove or add special moves that
+    #   the piece has. returns an array.
+
+    # TODO: all the game logic is going here. is there a better place we can
+    #   store this?
+    array_of_moves = legal_moves.dup
+
+    case piece.type
+    when :pawn
+      # pawn - opening move
+      if @cur_player.num_moves == 0
+        opening_move = coord_add(piece.position, piece.special_moves(:opening_move))
+        array_of_moves[opening_move] = :poss_move
+      end
+
+      # pawn - diagonal capture
+      # TODO
+
+    end
+
+    array_of_moves
   end
 
   def other_player
