@@ -34,11 +34,15 @@ class Display
     buffer_print
   end
 
-  def highlight_square(coord)
-    # highlights a specific square
+  def highlight_square(coord_arr, move_type, target_buffer)
+    # changes the background and text of the square, but will
+    #   not remove an icon if one exists for it already.
+    piece = @board.piece_at(coord_arr)
+    move_type = piece.type == :nil_piece ? :dot_square : move_type
+    paint_square(coord_arr, move_type, target_buffer, :bg_safe_move)
   end
 
-  def paint_square(coord_arr, move_type, target_buffer)
+  def paint_square(coord_arr, move_type, target_buffer, background=nil)
     # replaces the contents of a square
     sep = " "
     x = array_pos_for coord_arr[0]
@@ -46,9 +50,9 @@ class Display
     # y and x are intentionally reversed!
     case target_buffer
     when :low_priority
-      @buf_low_priority[y][x] = icon_for(move_type)
+      @buf_low_priority[y][x] = icon_for(move_type, background)
     when :high_priority
-      @buf_high_priority[y][x] = icon_for(move_type)
+      @buf_high_priority[y][x] = icon_for(move_type, background)
     end
   end
 
@@ -59,28 +63,28 @@ class Display
   end
 
   private
-  def icon_for(piece_type, home_base=nil)
+  def icon_for(piece_type, background=nil)
     # serves up a string icon for each piece.
     sep = " "
-    if home_base == :top
-      team_colour = :red
-    elsif home_base == :bottom
-      team_colour = :blue
-    else
-      team_colour = :light_white
+    case background
+    when :top;          bgcolor = :red
+    when :bottom;       bgcolor = :blue
+    when :bg_safe_move;           bgcolor = :light_yellow
+    else;                         bgcolor = :light_white
     end
 
+    # TODO: dot_square, poss_move are the same
     case piece_type
-    when :nil_piece;             icon = "   ".colorize(background: team_colour).underline
-    when :rook;           icon = " \u2656 ".colorize(color: :white, background: team_colour).underline
-    when :knight;         icon = " \u2658 ".colorize(color: :white, background: team_colour).underline
-    when :bishop;         icon = " \u2657 ".colorize(color: :white, background: team_colour).underline
-    when :king;           icon = " \u2654 ".colorize(color: :white, background: team_colour).underline
-    when :queen;          icon = " \u2655 ".colorize(color: :white, background: team_colour).underline
-    when :pawn;           icon = " \u2659 ".colorize(color: :white, background: team_colour).underline
+    when :nil_piece;      icon = "   ".colorize(background: bgcolor).underline
+    when :rook;           icon = " \u2656 ".colorize(color: :white, background: bgcolor).underline
+    when :knight;         icon = " \u2658 ".colorize(color: :white, background: bgcolor).underline
+    when :bishop;         icon = " \u2657 ".colorize(color: :white, background: bgcolor).underline
+    when :king;           icon = " \u2654 ".colorize(color: :white, background: bgcolor).underline
+    when :queen;          icon = " \u2655 ".colorize(color: :white, background: bgcolor).underline
+    when :pawn;           icon = " \u2659 ".colorize(color: :white, background: bgcolor).underline
     when :poss_move;      icon = " • ".colorize(color: :white, background: :light_magenta).blink
     when :capture_piece;  icon = " \u2620 ".colorize(color: :white, background: :light_red).blink
-    when :safe_move;      icon = " • ".colorize(color: :black, background: :light_yellow)
+    when :dot_square;     icon = " • ".colorize(color: :black, background: bgcolor)
     when :win_square;     icon = " \u1F604 ".colorize(color: :white, background: :green).blink
     end # case
 

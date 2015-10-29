@@ -165,7 +165,8 @@ class Game
         if @safe_moves
           @flash = "#{@cur_player.name}, you are in check! Your moves are limited."
           @safe_moves.each do |coord, move_type|
-            display.paint_square coord, move_type, :low_priority
+            #display.paint_square coord, move_type, :low_priority
+            display.highlight_square coord, move_type, :low_priority
           end
         else
           game_over # !!
@@ -342,7 +343,7 @@ class Game
                                           hypothetical_position: poss_move,
                                           generate_threat_vector: true
       unless threat_vectors.values.include?(:threat_piece)
-        king_legal_moves[poss_move] = :safe_move
+        king_legal_moves[poss_move] = :dot_square
       end
     end
 
@@ -353,7 +354,7 @@ class Game
     ally_legal_moves = {}
     ally_possible_moves.keys.each do |poss_move|
       if king_threat_vectors.include?(poss_move)
-        ally_legal_moves[poss_move] = :safe_move
+        ally_legal_moves[poss_move] = :dot_square
       end
     end
 
