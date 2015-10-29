@@ -1,5 +1,6 @@
 require "colorize"
 require "./chess_helpers"
+# TODO: what's the best way to smartly require all these and have them be path-dependnet?
 
 # colorize examples:
 # puts "This is blue".colorize(:blue)
@@ -56,15 +57,15 @@ class Display
 
     case piece_type
     when nil;             icon = "   ".colorize(background: team_colour).underline
-    when :rook;           icon = " # ".colorize(color: :white, background: team_colour).underline
-    when :knight;         icon = " & ".colorize(color: :white, background: team_colour).underline
-    when :bishop;         icon = " ! ".colorize(color: :white, background: team_colour).underline
-    when :king;           icon = " + ".colorize(color: :white, background: team_colour).underline
-    when :queen;          icon = " * ".colorize(color: :white, background: team_colour).underline
-    when :pawn;           icon = " - ".colorize(color: :white, background: team_colour).underline
+    when :rook;           icon = " \u2656 ".colorize(color: :white, background: team_colour).underline
+    when :knight;         icon = " \u2658 ".colorize(color: :white, background: team_colour).underline
+    when :bishop;         icon = " \u2657 ".colorize(color: :white, background: team_colour).underline
+    when :king;           icon = " \u2654 ".colorize(color: :white, background: team_colour).underline
+    when :queen;          icon = " \u2655 ".colorize(color: :white, background: team_colour).underline
+    when :pawn;           icon = " \u2659 ".colorize(color: :white, background: team_colour).underline
     when :poss_move;      icon = " • ".colorize(color: :white, background: :light_magenta).blink
-    when :capture_piece;  icon = " X ".colorize(color: :white, background: :light_red).blink
-    when :win_square;     icon = " * ".colorize(color: :white, background: :green).blink
+    when :capture_piece;  icon = " \u2620 ".colorize(color: :white, background: :light_red).blink
+    when :win_square;     icon = " \u1F604 ".colorize(color: :white, background: :green).blink
     end # case
 
     node = "#{icon}#{sep}"
