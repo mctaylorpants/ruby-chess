@@ -18,14 +18,18 @@ class Display
   # guess what - display will handle the graphics!
   include ChessHelpers
 
+  # TODO: Display::Buffer.new_buffer to init the arrays below [ [],[],[],[],[],[],[],[] ]
+
   def initialize(board:)
     # pass Display a board object so it can read it
     @buffer = []
     @board = board
-    @buf_replace = [ [],[],[],[],[],[],[],[] ] # for adding highlights and possible moves to the buffer
+    @buf_low_priority  = Buffer.new_buffer # this will get passed in from game
+    @buf_high_priority = Buffer.new_buffer # for adding highlights and possible moves to the buffer
   end
 
-  def update
+  def update(buffer)
+    fill_low_priority_buffer buffer
     buffer_fill
     buffer_print
   end
@@ -34,13 +38,18 @@ class Display
     # highlights a specific square
   end
 
-  def paint_square(coord_arr, move_type)
+  def paint_square(coord_arr, move_type, target_buffer)
     # replaces the contents of a square
     sep = " "
     x = array_pos_for coord_arr[0]
     y = array_pos_for coord_arr[1]
     # y and x are intentionally reversed!
-    @buf_replace[y][x] = icon_for(move_type)
+    case target_buffer
+    when :low_priority
+      @buf_low_priority[y][x] = icon_for(move_type)
+    when :high_priority
+      @buf_high_priority[y][x] = icon_for(move_type)
+    end
   end
 
   private
@@ -56,7 +65,7 @@ class Display
     end
 
     case piece_type
-    when nil;             icon = "   ".colorize(background: team_colour).underline
+    when :nil_piece;             icon = "   ".colorize(background: team_colour).underline
     when :rook;           icon = " \u2656 ".colorize(color: :white, background: team_colour).underline
     when :knight;         icon = " \u2658 ".colorize(color: :white, background: team_colour).underline
     when :bishop;         icon = " \u2657 ".colorize(color: :white, background: team_colour).underline
@@ -65,33 +74,55 @@ class Display
     when :pawn;           icon = " \u2659 ".colorize(color: :white, background: team_colour).underline
     when :poss_move;      icon = " • ".colorize(color: :white, background: :light_magenta).blink
     when :capture_piece;  icon = " \u2620 ".colorize(color: :white, background: :light_red).blink
+    when :safe_move;      icon = " • ".colorize(color: :black, background: :light_yellow)
     when :win_square;     icon = " \u1F604 ".colorize(color: :white, background: :green).blink
     end # case
 
     node = "#{icon}#{sep}"
   end
 
+  def fill_low_priority_buffer(buffer)
+    if buffer
+      buffer.each do |coord, move_type|
+        paint_square coord, move_type, :low_priority
+      end
+    end
+  end
+
   def buffer_fill
     # even though this is the whole board, it's best to think of it as
     #   'row' because we're iterating through each row, working on column
     #   values one by one.
+
     @buffer = @board.pieces.map do |row|
       r = []
       row.each do |piece|
           r << icon_for(piece.type, piece.owner.home_base)
       end
 
-      r
+      r # TODO: shouldn't this be at the bottom???
     end # end @buffer=
-    if @buf_replace.any?
-      # merge the contents of @buf_replace into the buffer
-      @buf_replace.each_with_index do |outer_element, outer_index|
+
+    if @buf_low_priority
+      # merge the contents of @buf_low_priority into the buffer
+      # this will be overwritten by any high-priority
+      # elements (like possible moves)
+      @buf_low_priority.each_with_index do |outer_element, outer_index|
+        outer_element.each_with_index do |inner_element, inner_index|
+          @buffer[outer_index][inner_index] = inner_element unless !inner_element
+        end
+      end
+    end
+
+    if @buf_high_priority.any?
+      # merge the contents of @buf_high_priority into the buffer
+      @buf_high_priority.each_with_index do |outer_element, outer_index|
         outer_element.each_with_index do |inner_element, inner_index|
           @buffer[outer_index][inner_index] = inner_element unless !inner_element
         end
       end
 
-      @buf_replace = [ [],[],[],[],[],[],[],[] ]
+      @buf_high_priority = Buffer.new_buffer
     end
 
 
@@ -111,5 +142,11 @@ class Display
 
     puts "•  a   b   c   d   e   f   g   h   •".colorize(color: :green)
 
+  end
+
+  class Buffer
+    def self.new_buffer
+      [ [],[],[],[],[],[],[],[] ] # returns a multi-d array in the shape of the board
+    end
   end
 end

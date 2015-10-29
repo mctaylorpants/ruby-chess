@@ -1,3 +1,7 @@
+# TODO: add “you selected piece x” to flash
+# TODO: if the user enters an invalid move, the possible moves stop flashing
+
+
 require "byebug" # for debugging purposes
 require "colorize"
 
@@ -49,10 +53,15 @@ class Game
     @player2    = Player.new "Player 2", :top
     @state      = :select_piece # select_piece
     @flash      = "" # for error messages, etc
+    @buffer     = nil                 # this will always be passed to display.update, so
+                                      #   that we can update the board based on game logic
+                                      #   like checkmate or game over
+                                      # TODO: do we need this now that we've refactored paint_square to accept a priority?
     @cur_player = @player1
     @cur_piece  = nil # once a player selects a piece, this stores it
     @cur_possible_moves = nil # stores hash of the moves available to
                               #    the currently-selected piece
+    @safe_moves = nil # if a player is in check, this will display the possible moves
     add_pieces
     main_loop
   end
@@ -65,11 +74,11 @@ class Game
     #   until the user exits. it updates the screen, prompts the user based
     #   on the current state of the game, and waits for input.
     while true
-      display.update
+      display.update @buffer
       prompt_for @state
       input = gets.chomp
       parse input
-      game_over if game_won
+      # TODO: we have a game_over method here we can call when ready...
     end # while true
   end
 
@@ -133,7 +142,7 @@ class Game
         @state = :select_piece
       else
         @cur_possible_moves.each do |coord, move_type|
-          display.paint_square coord, move_type
+          display.paint_square coord, move_type, :high_priority
         end
       end
     else
@@ -146,6 +155,22 @@ class Game
       check_for_captured_piece_at(coord)
       board.move_piece(@cur_piece, coord)
       toggle_player
+
+      if player_is_in_check?
+        # display these safe moves to the player; these are now
+        #   the only options they have, so their next move should
+        #   also be checked against this array.
+        @safe_moves = get_safe_moves
+
+        if @safe_moves
+          @flash = "#{@cur_player.name}, you are in check! Your moves are limited."
+          @safe_moves.each do |coord, move_type|
+            display.paint_square coord, move_type, :low_priority
+          end
+        else
+          game_over # !!
+        end
+      end
     else
       @flash = FLASH_MESSAGES[:invalid_move]
       select_piece @cur_piece
@@ -168,10 +193,12 @@ class Game
   def toggle_player
     @cur_player.increment_move_count
     @cur_player = other_player
+    @buffer = {} # we clear it here because the buffer so far is just used for
+                 #   a specific player's context (e.g. safe moves for check)
     @state = :select_piece
   end
 
-  def possible_moves_for(this_piece)
+  def possible_moves_for(this_piece, test_for_check = { hypothetical_position: nil, generate_threat_vector: nil })
     # given a piece, returns a new array containing all the
     #   valid moves on the board, and the result that each move would have
     #   (e.g. 'move', 'kill', 'check', 'checkmate'.) the result is used to
@@ -182,31 +209,48 @@ class Game
     #   store them in legal_moves. however, we haven't added special moves
     #   for pieces like pawns and kings, and we haven't removed moves that
     #   would result in checkmate.
-    legal_moves = generate_moves_along_path(this_piece)
+    legal_moves = generate_moves_along_path(this_piece, test_for_check)
     legal_moves = filter_special_moves this_piece, legal_moves
 
     legal_moves
   end
 
-  def generate_moves_along_path(this_piece)
+  def possible_moves_for_pieces(piece_arr)
+    possible_moves = {}
+    piece_arr.each do |piece|
+      this_piece_moves = possible_moves_for piece
+      if this_piece_moves.any?
+        this_piece_moves.map { |k| possible_moves[k[0]] = k[1] }
+      end
+    end
+    return possible_moves
+  end
+
+  def generate_moves_along_path(this_piece, test_for_check = { hypothetical_position: nil, generate_threat_vector: nil })
     # for each move, walk the path between the current position
     #   and the target position. return when we hit another piece
     #   or the edge of the board
+    hypothetical_position ||= test_for_check[:hypothetical_position]
+    generate_threat_vector ||= test_for_check[:generate_threat_vector]
+    other_player_piece_type = generate_threat_vector ? :threat_piece : :capture_piece
+
     legal_moves = {}
 
     this_piece.possible_offsets.each do |offset|
-      this_pos = this_piece.position
+      # use a hypothetical position if one was given to us (for the purposes
+      #   of testing for check/checkmate)
+      this_pos = hypothetical_position ? hypothetical_position : this_piece.position
 
       while true
         potential_position = coord_add(this_pos, offset)
         break unless is_a_legal_move?(this_piece, potential_position)
 
         if board.piece_at(potential_position).owner == other_player
-          legal_moves[potential_position] = :capture_piece
+          legal_moves[potential_position] = other_player_piece_type
           break
         else
           legal_moves[potential_position] = :poss_move
-          break if this_piece.jumps_to_target
+          break if this_piece.jumps_to_target && generate_threat_vector.nil?
         end
 
         this_pos = potential_position
@@ -269,13 +313,64 @@ class Game
     [x, y]
   end
 
-  def game_won
+  def player_is_in_check?
     @cur_possible_moves = possible_moves_for @cur_piece
     @cur_possible_moves.keys.each do |coord|
       piece = board.piece_at coord
       return true if piece.type == :king && piece.owner != @cur_piece.owner
     end
     false
+  end
+
+  def get_safe_moves
+    # if a player is in check, return all the safe moves available that would
+    #   would resolve check - if any!
+
+    # get the threat vectors for the current player's king. current
+    #   the 'current player' in this context is the one who is threatened.
+    king_threat_vectors = possible_moves_for @cur_player.king,
+                                             generate_threat_vector: true
+
+    king_possible_moves = possible_moves_for @cur_player.king
+    ally_possible_moves = possible_moves_for_pieces @cur_player.pieces
+
+    # model the threat vectors for each position the king could
+    #   move to. is there a position in which it would be safe?
+    king_legal_moves = {}
+    king_possible_moves.keys.each do |poss_move|
+      threat_vectors = possible_moves_for @cur_player.king,
+                                          hypothetical_position: poss_move,
+                                          generate_threat_vector: true
+      unless threat_vectors.values.include?(:threat_piece)
+        king_legal_moves[poss_move] = :safe_move
+      end
+    end
+
+    # compare the all the possible moves for the player's pieces.
+    #   could any of them make the king safe?
+    #   NOTE: you could only get out of check with a piece if there's
+    #   only one threat vector; otherwise, the king MUST move.
+    ally_legal_moves = {}
+    ally_possible_moves.keys.each do |poss_move|
+      if king_threat_vectors.include?(poss_move)
+        ally_legal_moves[poss_move] = :safe_move
+      end
+    end
+
+    safe_moves = {}
+    # now we have all the possible moves for the king, and all the
+    #   possible moves for the allied pieces that could protect the
+    #   king. next, we check how many threat vectors exist.
+    #   if one threat vector exists, the king OR a piece can resolve
+    #   check. if two or more threat vectors exist, only the king
+    #   has the potential to escape.
+
+    safe_moves.merge!(king_legal_moves)
+
+    if king_threat_vectors.values.count(:threat_piece) == 1
+      safe_moves.merge!(ally_legal_moves)
+    end
+    safe_moves
   end
 
   def game_over

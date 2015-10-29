@@ -4,24 +4,24 @@ TODO
 
 
 KING_THREAT_VECTORS
-  - all squares in each direction in which the king is currently threatened
+  - all squares in each direction in which the king is currently
+    threatened
 
 ALLY_POSSIBLE_MOVES
-  - all squares in which the threatened king’s ally could move
+  - all squares in which the threatened king’s allies could move
 
 KING_POSSIBLE_MOVES
   - all squares in which the king could move
 
 for each KING_POSSIBLE_MOVES do |POSSIBLE_MOVE|
   evaluate threat vectors for POSSIBLE_MOVE
-   * if there are none, POSSIBLE_MOVE is valid
+   if there are none, POSSIBLE_MOVE is valid
+   else, remove that possible move
 
 for each ALLY_POSSIBLE_MOVES do |POSSIBLE_MOVE|
   if POSSIBLE_MOVE exists in KING_THREAT_VECTORS
-    remove POSSIBLE_MOVE from KING_THREAT_VECTORS
-      recalculate KING_THREAT_VECTORS. 
+    simulate moving the piece to POSSIBLE_MOVE
+      recalculate KING_THREAT_VECTORS.
         * if there are none, POSSIBLE_MOVE is valid
 
 if there are no POSSIBLE_MOVES, checkmate!
-     
-  
