@@ -53,10 +53,6 @@ class Game
     @player2    = Player.new "Player 2", :top
     @state      = :select_piece # select_piece
     @flash      = "" # for error messages, etc
-    @buffer     = nil                 # this will always be passed to display.update, so
-                                      #   that we can update the board based on game logic
-                                      #   like checkmate or game over
-                                      # TODO: do we need this now that we've refactored paint_square to accept a priority?
     @cur_player = @player1
     @cur_piece  = nil # once a player selects a piece, this stores it
     @cur_possible_moves = nil # stores hash of the moves available to
@@ -74,7 +70,7 @@ class Game
     #   until the user exits. it updates the screen, prompts the user based
     #   on the current state of the game, and waits for input.
     while true
-      display.update @buffer
+      display.update
       prompt_for @state
       input = gets.chomp
       parse input

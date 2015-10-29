@@ -28,8 +28,7 @@ class Display
     @buf_high_priority = Buffer.new_buffer # for adding highlights and possible moves to the buffer
   end
 
-  def update(buffer)
-    fill_low_priority_buffer buffer
+  def update
     buffer_fill
     buffer_print
   end
@@ -89,14 +88,6 @@ class Display
     end # case
 
     node = "#{icon}#{sep}"
-  end
-
-  def fill_low_priority_buffer(buffer)
-    if buffer
-      buffer.each do |coord, move_type|
-        paint_square coord, move_type, :low_priority
-      end
-    end
   end
 
   def buffer_fill
