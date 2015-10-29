@@ -193,8 +193,8 @@ class Game
   def toggle_player
     @cur_player.increment_move_count
     @cur_player = other_player
-    @buffer = {} # we clear it here because the buffer so far is just used for
-                 #   a specific player's context (e.g. safe moves for check)
+    display.reset_display # we remove any special squares here since those are
+                          #   displayed for a specific player
     @state = :select_piece
   end
 

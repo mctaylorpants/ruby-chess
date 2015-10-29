@@ -52,6 +52,12 @@ class Display
     end
   end
 
+  def reset_display
+    # clears the two buffers
+    @buf_low_priority = Buffer.new_buffer
+    @buf_high_priority = Buffer.new_buffer
+  end
+
   private
   def icon_for(piece_type, home_base=nil)
     # serves up a string icon for each piece.
