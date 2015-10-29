@@ -7,21 +7,20 @@ class Piece
   attr_reader :type  # not set here, but it will be set by each piece
   attr_reader :rotation
   attr_reader :possible_offsets
-  attr_reader :jumps_to_target
+  attr_reader :jumps_to_target # kings and pawns can only move one tile at a time
 
   def initialize(game, owner)
     @game     = game
     @owner    = owner
 
-    @position = [-1,-1]
-    @possible_offsets = []
-    @jumps_to_target = false # kings and pawns can only move one tile at a time
-    @special_moves = {}
-
     # @possible_offsets below is written using the "bottom" pieces as reference.
     #   so, when moving top pieces, we need to rotate the coordinates by 180
     #   degrees by multiplying both axes by -1.
     @rotation = owner.home_base == :top ? -1 : 1
+
+    # the player object knows about all of their own pieces, so that we can do
+    #   things like 'player.pieces'
+    owner.assign_piece(self)
 
   end
 

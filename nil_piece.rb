@@ -5,4 +5,8 @@ class NilPiece < Piece
   #   is empty. we use this so that when you do something like 'piece.owner',
   #   it responds correctly.
   # TODO: is this a good way of solving this problem?
+  def initialize(game, owner)
+    super
+    @type = :nil_piece
+  end
 end
