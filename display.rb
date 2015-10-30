@@ -37,7 +37,8 @@ class Display
     # changes the background and text of the square, but will
     #   not remove an icon if one exists for it already.
     piece = @board.piece_at(coord_arr)
-    move_type = piece.type == :nil_piece ? :dot_square : move_type
+    #byebug
+    move_type = piece.type == :nil_piece ? :dot_square : piece.type
     paint_square(coord_arr, move_type, target_buffer, :bg_safe_move)
   end
 
