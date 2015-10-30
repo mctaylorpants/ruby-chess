@@ -40,6 +40,8 @@ class Board
     add_piece piece, pos_arr
 
     piece.position = [new_pos_x, new_pos_y]
+
+    piece.moves += 1
   end
 
 
