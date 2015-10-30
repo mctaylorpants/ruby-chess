@@ -233,9 +233,11 @@ class Game
     legal_moves
   end
 
-  def possible_moves_for_pieces(piece_arr)
+  def possible_moves_for_pieces(piece_arr, exclude: false)
     possible_moves = {}
     piece_arr.each do |piece|
+      byebug
+      next if exclude && piece.type == exclude
       this_piece_moves = possible_moves_for piece
       if this_piece_moves.any?
         this_piece_moves.map { |k| possible_moves[k[0]] = k[1] }
@@ -297,7 +299,7 @@ class Game
     case piece.type
     when :pawn
       # pawn - opening move
-      if @cur_player.num_moves == 0
+      if piece.moves == 0
         opening_move = coord_add(piece.position, piece.special_moves(:opening_move))
         array_of_moves[opening_move] = :poss_move
       end
@@ -306,7 +308,6 @@ class Game
       # TODO
 
       # pawn - diagonal capture
-      # TODO
 
       # pawn - promotion (should be implemented in another area)
       # TODO
@@ -347,6 +348,10 @@ class Game
   end
 
   def get_safe_moves
+    # BUG: since we're merging all the safe moves, there's a situation in which
+    #      the king has no legal moves, but another piece has a legal move
+    #      which overlaps with the king's potential movement, allowing the
+    #      king to move when it shouldn't be allowed to.
     # if a player is in check, return all the safe moves available that would
     #   would resolve check - if any!
 
@@ -356,12 +361,13 @@ class Game
                                              generate_threat_vector: true
 
     king_possible_moves = possible_moves_for @cur_player.king
-    ally_possible_moves = possible_moves_for_pieces @cur_player.pieces
+    ally_possible_moves = possible_moves_for_pieces @cur_player.pieces, exclude: :king
 
     # model the threat vectors for each position the king could
     #   move to. is there a position in which it would be safe?
     king_legal_moves = {}
     king_possible_moves.keys.each do |poss_move|
+      byebug
       threat_vectors = possible_moves_for @cur_player.king,
                                           hypothetical_position: poss_move,
                                           generate_threat_vector: true
