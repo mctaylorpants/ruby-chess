@@ -36,25 +36,27 @@ class Game
                         "h" => 8 }
 
   FLASH_MESSAGES = {
-    :invalid_selection => "Invalid selection!",
-    :no_moves_available => "No moves available for that piece",
-    :invalid_move => "Invalid move! Try again.",
-    :captured_piece => "You captured <PLAYER>'s <PIECE>!",
-    :game_over => "<PLAYER> is victorious! Congratulations!"
+    :invalid_selection =>    "Invalid selection!",
+    :no_moves_available =>   "No moves available for that piece",
+    :invalid_move =>         "Invalid move! Try again.",
+    :invalid_move_check =>   "No moves available for that piece - protect your king!",
+    :captured_piece =>       "You captured <PLAYER>'s <PIECE>!",
+    :game_over =>            "<PLAYER> is victorious! Congratulations!"
   }
 
   BOARD_MAX_COORD_X = 8
   BOARD_MAX_COORD_Y = 8
 
   def initialize
-    @board      = Board.new
-    @display    = Display.new board: @board
-    @player1    = Player.new "Player 1", :bottom
-    @player2    = Player.new "Player 2", :top
-    @state      = :select_piece # select_piece
-    @flash      = "" # for error messages, etc
-    @cur_player = @player1
-    @cur_piece  = nil # once a player selects a piece, this stores it
+    @board              = Board.new
+    @display            = Display.new board: @board
+    @player1            = Player.new "Player 1", :bottom
+    @player2            = Player.new "Player 2", :top
+    @input_state        = :select_piece # select_piece
+    @check_state        = false # is a player in check?
+    @flash              = "" # for error messages, etc
+    @cur_player         = @player1
+    @cur_piece          = nil # once a player selects a piece, this stores it
     @cur_possible_moves = nil # stores hash of the moves available to
                               #    the currently-selected piece
     @safe_moves = nil # if a player is in check, this will display the possible moves
@@ -71,7 +73,7 @@ class Game
     #   on the current state of the game, and waits for input.
     while true
       display.update
-      prompt_for @state
+      prompt_for @input_state
       input = gets.chomp
       parse input
       # TODO: we have a game_over method here we can call when ready...
@@ -115,12 +117,12 @@ class Game
   end
 
   def process_command(cmd)
-    case @state
+    case @input_state
     when :select_piece
       select_piece board.piece_at(pos_for_coord(cmd))
     when :move_piece
       if cmd == "cancel"
-        @state = :select_piece
+        @input_state = :select_piece
       else
         move_piece_to(pos_for_coord(cmd))
       end
@@ -129,13 +131,28 @@ class Game
 
   def select_piece(piece)
     if piece.owner == @cur_player
-      @state = :move_piece
+      @input_state = :move_piece
       @cur_piece = piece
       @cur_possible_moves = possible_moves_for @cur_piece
 
+      if @check_state
+        # if we're in check and the possible moves for the piece isn't in safe moves
+        @cur_possible_moves = @cur_possible_moves.keep_if do |i|
+          @safe_moves.keys.include?(i)
+        end
+
+        if @cur_possible_moves.empty?
+          @flash = FLASH_MESSAGES[:invalid_move_check]
+          @input_state = :select_piece
+          return
+        end
+
+      end
+
+
       if @cur_possible_moves.count == 0
         @flash = FLASH_MESSAGES[:no_moves_available]
-        @state = :select_piece
+        @input_state = :select_piece
       else
         @cur_possible_moves.each do |coord, move_type|
           display.paint_square coord, move_type, :high_priority
@@ -160,16 +177,20 @@ class Game
 
         if @safe_moves
           @flash = "#{@cur_player.name}, you are in check! Your moves are limited."
-          @safe_moves.each do |coord, move_type|
-            #display.paint_square coord, move_type, :low_priority
-            display.highlight_square coord, move_type, :low_priority
-          end
+          # @safe_moves.each do |coord, move_type|
+          #   #display.paint_square coord, move_type, :low_priority
+          #   display.highlight_square coord, move_type, :low_priority
+          # end
         else
           game_over # !!
         end
       end
     else
-      @flash = FLASH_MESSAGES[:invalid_move]
+      if player_is_in_check?
+        @flash = FLASH_MESSAGES[:invalid_move_check]
+      else
+        @flash = FLASH_MESSAGES[:invalid_move]
+      end
       select_piece @cur_piece
     end
   end
@@ -192,7 +213,7 @@ class Game
     @cur_player = other_player
     display.reset_display # we remove any special squares here since those are
                           #   displayed for a specific player
-    @state = :select_piece
+    @input_state = :select_piece
   end
 
   def possible_moves_for(this_piece, test_for_check = { hypothetical_position: nil, generate_threat_vector: nil })
@@ -314,9 +335,15 @@ class Game
     @cur_possible_moves = possible_moves_for @cur_piece
     @cur_possible_moves.keys.each do |coord|
       piece = board.piece_at coord
-      return true if piece.type == :king && piece.owner != @cur_piece.owner
+
+      if piece.type == :king && piece.owner != @cur_piece.owner
+        @check_state = @cur_piece.owner
+        return true
+      end
     end
-    false
+
+    @check_state = false
+    #false
   end
 
   def get_safe_moves
@@ -376,7 +403,7 @@ class Game
 
     # a quick move sequence for testing to get to checkmate quickly:
     #   c2 -> c4, d7 -> d6, d1 -> a4 (player 1 wins)
-    @state = :game_won
+    @input_state = :game_won
     @flash = FLASH_MESSAGES[:game_over].gsub("<PLAYER>", other_player.name)
     (1..BOARD_MAX_COORD_X).each do |x|
       (1..BOARD_MAX_COORD_Y).each do |y|
