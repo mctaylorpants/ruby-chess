@@ -104,10 +104,9 @@ class Game
   def parse(cmd)
     # takes the user's string and decides what to do with it.
     case cmd
-    when "exit", "x", "q"
-      exit
-    when "cancel"
-      process_command cmd
+    when "exit", "x", "q"; exit
+    when "cancel"; process_command cmd
+    when "byebug"; byebug
     when cmd[/^[a^-zA-Z][0-9]$/]
       # matches two-character commands beginning with a letter
       #   and ending with a number.
@@ -236,7 +235,6 @@ class Game
   def possible_moves_for_pieces(piece_arr, exclude: false)
     possible_moves = {}
     piece_arr.each do |piece|
-      byebug
       next if exclude && piece.type == exclude
       this_piece_moves = possible_moves_for piece
       if this_piece_moves.any?
@@ -304,10 +302,13 @@ class Game
         array_of_moves[opening_move] = :poss_move
       end
 
-      # pawn - en passant
-      # TODO
+      # TODO pawn - en passant
 
-      # pawn - diagonal capture
+      # TODO pawn - diagonal capture
+      piece.special_moves(:diagonal_capture).each do |move|
+        move = coord_add(piece.position, move)
+        array_of_moves[move] = :capture_piece if board.piece_at(move) && board.piece_at(move).owner == other_player
+      end
 
       # pawn - promotion (should be implemented in another area)
       # TODO
@@ -339,6 +340,7 @@ class Game
 
       if piece.type == :king && piece.owner != @cur_piece.owner
         @check_state = @cur_piece.owner
+        #byebug
         return true
       end
     end
@@ -348,7 +350,7 @@ class Game
   end
 
   def get_safe_moves
-    # BUG: since we're merging all the safe moves, there's a situation in which
+    # FIXME: since we're merging all the safe moves, there's a situation in which
     #      the king has no legal moves, but another piece has a legal move
     #      which overlaps with the king's potential movement, allowing the
     #      king to move when it shouldn't be allowed to.
@@ -367,7 +369,6 @@ class Game
     #   move to. is there a position in which it would be safe?
     king_legal_moves = {}
     king_possible_moves.keys.each do |poss_move|
-      byebug
       threat_vectors = possible_moves_for @cur_player.king,
                                           hypothetical_position: poss_move,
                                           generate_threat_vector: true

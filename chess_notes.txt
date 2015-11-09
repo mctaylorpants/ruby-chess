@@ -1,3 +1,15 @@
+checkmate =
+f2 -> f4
+e7 -> e5
+g2 -> g4
+d8 -> h4
+
+diagonal pawn capture =
+d2 -> d4
+e7 -> e5
+d4
+
+
 TODO
  - add “you selected piece x” to flash
  - if the user enters an invalid move, the possible moves stop flashing
