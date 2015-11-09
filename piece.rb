@@ -2,7 +2,6 @@ require "./chess_helpers.rb"
 
 class Piece
   include ChessHelpers
-  attr_accessor :position
   attr_reader :owner # which player owns this piece?
   attr_reader :type  # not set here, but it will be set by each piece
   attr_reader :rotation
@@ -24,6 +23,14 @@ class Piece
     #   things like 'player.pieces'
     owner.assign_piece(self)
 
+  end
+
+  def position
+    @position
+  end
+
+  def position=(pos)
+    @position = pos
   end
 
   def add_to_board_at(pos_arr)

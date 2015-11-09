@@ -20,6 +20,7 @@ class Game
   include ChessHelpers
 
   # game objects
+  attr_reader :turn
   attr_reader :board
   attr_reader :display
   attr_reader :state # this will hold the game's "state". is it player 1's turn?
@@ -48,6 +49,7 @@ class Game
   BOARD_MAX_COORD_Y = 8
 
   def initialize
+    @turn               = 1 # number of turns that have elapsed; used for checking certain game logic
     @board              = Board.new
     @display            = Display.new board: @board
     @player1            = Player.new "Player 1", :bottom
@@ -124,6 +126,7 @@ class Game
         @input_state = :select_piece
       else
         move_piece_to(pos_for_coord(cmd))
+        @turn += 1
       end
     end
   end
@@ -302,9 +305,24 @@ class Game
         array_of_moves[opening_move] = :poss_move
       end
 
-      # TODO pawn - en passant
+      # pawn - en passant
+      # for en passant, the following conditions have to be met:
+      #  1. an enemy pawn has just advanced two squares on the previous turn
+      #  2. this pawn is directly adjacent to the enemy pawn
+      # if these conditions are met, this pawn can capture the enemy pawn,
+      # and will move diagonally to occupy the square immediately behind the
+      # captured pawn.
+      piece.special_moves(:en_passant).each do |move|
+        move = coord_add(piece.position, move)
+        enemy_piece = board.piece_at(move)
+        if enemy_piece &&
+        enemy_piece.owner == other_player &&
+        @turn - enemy_piece.executed_opening_move == 1
+          array_of_moves[move] = :capture_piece
+        end
+      end
 
-      # TODO pawn - diagonal capture
+      # pawn - diagonal capture
       piece.special_moves(:diagonal_capture).each do |move|
         move = coord_add(piece.position, move)
         array_of_moves[move] = :capture_piece if board.piece_at(move) && board.piece_at(move).owner == other_player

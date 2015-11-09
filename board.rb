@@ -27,7 +27,7 @@ class Board
     pieces[array_pos_for pos_y][array_pos_for pos_x]
   end
 
-  def move_piece(piece, pos_arr)
+  def move_piece(piece, pos_arr, should_tick_moves=true)
     # moves a piece on the board; returns the existing piece if one was
     #   there already.
     cur_pos_x, cur_pos_y = piece.position
@@ -41,7 +41,7 @@ class Board
 
     piece.position = [new_pos_x, new_pos_y]
 
-    piece.moves += 1
+    piece.moves += 1 if should_tick_moves
   end
 
 
