@@ -1,6 +1,6 @@
 require "colorize"
 require "./chess_helpers"
-# TODO: what's the best way to smartly require all these and have them be path-dependnet?
+# REFACTOR: what's the best way to smartly require all these and have them be path-dependnet?
 
 # colorize examples:
 # puts "This is blue".colorize(:blue)
@@ -17,8 +17,6 @@ require "./chess_helpers"
 class Display
   # guess what - display will handle the graphics!
   include ChessHelpers
-
-  # TODO: Display::Buffer.new_buffer to init the arrays below [ [],[],[],[],[],[],[],[] ]
 
   def initialize(board:)
     # pass Display a board object so it can read it
@@ -73,7 +71,7 @@ class Display
     else;                         bgcolor = :light_white
     end
 
-    # TODO: dot_square, poss_move are the same
+    # REFACTOR: dot_square, poss_move are the same
     case piece_type
     when :nil_piece;      icon = "   ".colorize(background: bgcolor).underline
     when :rook;           icon = " \u2656 ".colorize(color: :white, background: bgcolor).underline
@@ -102,7 +100,7 @@ class Display
           r << icon_for(piece.type, piece.owner.home_base)
       end
 
-      r # TODO: shouldn't this be at the bottom???
+      r # REFACTOR: shouldn't this be at the bottom???
     end # end @buffer=
 
     if @buf_low_priority

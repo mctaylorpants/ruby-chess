@@ -1,6 +1,6 @@
 # TODO: add “you selected piece x” to flash
 # TODO: if the user enters an invalid move, the possible moves stop flashing
-
+# TODO: implement checkmate properly. there are some bugs
 
 require "byebug" # for debugging purposes
 require "colorize"
@@ -293,7 +293,7 @@ class Game
     # with an array of moves and a piece, remove or add special moves that
     #   the piece has. returns an array.
 
-    # TODO: all the game logic is going here. is there a better place we can
+    # REFACTOR: all the game logic is going here. is there a better place we can
     #   store this?
     array_of_moves = legal_moves.dup
 
@@ -328,12 +328,10 @@ class Game
         array_of_moves[move] = :capture_piece if board.piece_at(move) && board.piece_at(move).owner == other_player
       end
 
-      # pawn - promotion (should be implemented in another area)
-      # TODO
+      # TODO pawn - promotion (should be implemented in another area)
 
     when :king
-      # king - castling
-      # TODO
+      # TODO king - castling
 
     end
 
@@ -439,8 +437,7 @@ class Game
 
   def add_pieces
     # builds each piece for each player and puts it on the board.
-    # TODO: use metaprogramming to automatically instantiate the objects
-    # TODO: god there's definitely a sexier way to do this...
+    # REFACTOR: use metaprogramming to automatically instantiate the objects
 
     # add player 1 (bottom) pieces
     player = @player1
