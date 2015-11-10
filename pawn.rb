@@ -13,7 +13,7 @@ class Pawn < Piece
 
     # if the pawn jumps two squares on its first move, this will be true;
     #  used to calculate en passant
-    @executed_opening_move = false
+    @executed_opening_move = -1
 
     # each array within possible_offsets is an x,y offset from the current
     #  position of the piece. the resulting target coordinates will be

@@ -159,7 +159,7 @@ class Game
         end
       end
     else
-      @flas.push FLASH_MESSAGES[:invalid_selection]
+      @flash.push FLASH_MESSAGES[:invalid_selection]
     end
   end
 
@@ -314,6 +314,7 @@ class Game
         move = coord_add(piece.position, move)
         enemy_piece = board.piece_at(move)
         if enemy_piece &&
+        enemy_piece.type == :pawn &&
         enemy_piece.owner == other_player &&
         @turn - enemy_piece.executed_opening_move == 1
           array_of_moves[move] = :capture_piece
