@@ -1,4 +1,5 @@
 require "./piece.rb"
+require "./queen.rb" # for promotional purposes :P
 require "./chess_helpers.rb"
 
 class Pawn < Piece
@@ -10,6 +11,7 @@ class Pawn < Piece
     super
     @type = :pawn
     @jumps_to_target = true
+    @promoted = false
 
     # if the pawn jumps two squares on its first move, this will be true;
     #  used to calculate en passant
@@ -38,6 +40,7 @@ class Pawn < Piece
     offset = coord_subtract(old_pos, pos)
     super
 
+    # set the opening move flag; this is used for en passant logic
     if offset[1].abs == 2 && !@executed_opening_move
       @executed_opening_move = @game.turn
     end
@@ -49,6 +52,27 @@ class Pawn < Piece
       @position = new_pos
     end
 
+    if deserves_a_promotion?(pos)
+      transform_to(Queen)
+      @promoted = true
+      @game.flash.push "Your pawn was promoted!"
+    end
+
+  end
+
+  def transform_to(klass)
+    temp_piece = klass.new(@game, @owner)
+    @type = temp_piece.type
+    @possible_offsets = temp_piece.possible_offsets
+    @jumps_to_target = temp_piece.jumps_to_target
+  end
+
+  def deserves_a_promotion?(pos)
+    if self.owner.home_base == :top
+      return true if pos[1] == 1
+    elsif self.owner.home_base == :bottom
+      return true if pos[1] == 8
+    end
   end
 
 

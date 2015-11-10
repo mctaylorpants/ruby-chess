@@ -25,6 +25,7 @@ class Game
   attr_reader :display
   attr_reader :state # this will hold the game's "state". is it player 1's turn?
                      #   has the player selected a piece? etc
+  attr_accessor :flash
 
   # this is used to convert chess coordinates (e.g. a4) to standard x,y coords
   NUMBER_FOR_LETTER = { "a" => 1,
@@ -84,8 +85,10 @@ class Game
 
   def prompt_for(state)
     # this determines what to display in each circumstance.
-    @flash.each { |msg| puts msg.colorize(color: :blue) }
-    @flash = []
+    if @flash
+      @flash.each { |msg| puts msg.colorize(color: :blue) }
+      @flash = []
+    end
     puts " "
     prompt = "(#{@cur_player.name}, #{@cur_player.home_base})"
 
@@ -317,6 +320,7 @@ class Game
       # captured pawn.
       piece.special_moves(:en_passant).each do |move|
         move = coord_add(piece.position, move)
+        next if move[0] == 0 or move[1] == 0 # REFACTOR-001
         enemy_piece = board.piece_at(move)
         if enemy_piece &&
         enemy_piece.type == :pawn &&
@@ -329,6 +333,7 @@ class Game
       # pawn - diagonal capture
       piece.special_moves(:diagonal_capture).each do |move|
         move = coord_add(piece.position, move)
+        next if move[0] == 0 or move[1] == 0 # REFACTOR-001
         array_of_moves[move] = :capture_piece if board.piece_at(move) && board.piece_at(move).owner == other_player
       end
 
@@ -360,7 +365,6 @@ class Game
 
       if piece.type == :king && piece.owner != @cur_piece.owner
         @check_state = @cur_piece.owner
-        #byebug
         return true
       end
     end
