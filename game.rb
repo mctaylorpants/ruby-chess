@@ -312,7 +312,10 @@ class Game
       # pawn - opening move
       if piece.moves == 0
         opening_move = coord_add(piece.position, piece.special_moves(:opening_move))
-        array_of_moves[opening_move] = :poss_move
+        if board.piece_at(opening_move).type == :nil_piece &&
+           board.piece_at(legal_moves.first[0]).type == :nil_piece
+          array_of_moves[opening_move] = :poss_move
+        end
       end
 
       # pawn - en passant
