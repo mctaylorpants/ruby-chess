@@ -137,6 +137,7 @@ class Game
       @input_state = :move_piece
       @cur_piece = piece
       @cur_possible_moves = possible_moves_for @cur_piece
+      @flash.push "#{@cur_piece.type.capitalize} #{coord_for_pos(@cur_piece.position)}"
 
       if @check_state
         # if we're in check and the possible moves for the piece isn't in safe moves
@@ -356,6 +357,12 @@ class Game
     x = NUMBER_FOR_LETTER[coord_string[0]]
     y = coord_string[1].to_i
     [x, y]
+  end
+
+  def coord_for_pos(pos_arr)
+    x = NUMBER_FOR_LETTER.invert[pos_arr[0]]
+    y = pos_arr[1]
+    "#{x}#{y}"
   end
 
   def player_is_in_check?
