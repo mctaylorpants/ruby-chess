@@ -297,6 +297,11 @@ class Game
 
     case piece.type
     when :pawn
+      # pawn - remove forward capture
+      array_of_moves = array_of_moves.reject do |move|
+        array_of_moves[move] == :capture_piece
+      end
+
       # pawn - opening move
       if piece.moves == 0
         opening_move = coord_add(piece.position, piece.special_moves(:opening_move))
