@@ -26,10 +26,8 @@ class Pawn < Piece
 
     @special_moves = { :opening_move => [0, 2 * @rotation],
                        :en_passant => [[1,0],[-1,0]],
-                       :diagonal_capture => [[1,1],
-                                             [1,-1],
-                                             [-1,-1],
-                                             [-1,1]]}
+                       :diagonal_capture => [[1,1 * @rotation],
+                                             [-1,1 * @rotation]]}
   end
 
   def position=(pos)
