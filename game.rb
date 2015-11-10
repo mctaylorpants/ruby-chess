@@ -110,7 +110,7 @@ class Game
     when "exit", "x", "q"; exit
     when "cancel"; process_command cmd
     when "byebug"; byebug
-    when cmd[/^[a^-zA-Z][0-9]$/]
+    when cmd[/^[a^-hA-H][1-8]$/]
       # matches two-character commands beginning with a letter
       #   and ending with a number.
       process_command cmd
