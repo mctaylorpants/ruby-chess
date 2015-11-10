@@ -114,6 +114,7 @@ class Game
       # matches two-character commands beginning with a letter
       #   and ending with a number.
       process_command cmd
+    else; @flash.push FLASH_MESSAGES[:invalid_selection]
     end
 
   end
