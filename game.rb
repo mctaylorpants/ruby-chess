@@ -96,7 +96,7 @@ class Game
     when :select_piece
       string = "#{prompt} Select a piece (e.g. a1)"
     when :move_piece
-      string = "#{prompt} Select a highlighted tile (or type 'cancel')"
+      string = "#{prompt} Select a highlighted tile (or '" + "c".underline + "ancel')"
     when :game_won
       exit
     end
@@ -108,7 +108,7 @@ class Game
     # takes the user's string and decides what to do with it.
     case cmd
     when "exit", "x", "q"; exit
-    when "cancel"; process_command cmd
+    when "cancel", "c"; process_command cmd
     when "byebug"; byebug
     when cmd[/^[a^-hA-H][1-8]$/]
       # matches two-character commands beginning with a letter
