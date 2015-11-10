@@ -56,7 +56,7 @@ class Game
     @player2            = Player.new "Player 2", :top
     @input_state        = :select_piece # select_piece
     @check_state        = false # is a player in check?
-    @flash              = "" # for error messages, etc
+    @flash              = [] # for error messages, etc
     @cur_player         = @player1
     @cur_piece          = nil # once a player selects a piece, this stores it
     @cur_possible_moves = nil # stores hash of the moves available to
@@ -84,9 +84,9 @@ class Game
 
   def prompt_for(state)
     # this determines what to display in each circumstance.
-    puts @flash.colorize(color: :blue) if @flash
+    @flash.each { |msg| puts msg.colorize(color: :blue) }
+    @flash = []
     puts " "
-
     prompt = "(#{@cur_player.name}, #{@cur_player.home_base})"
 
     case state
@@ -98,8 +98,6 @@ class Game
       exit
     end
     print string + " > "
-
-    @flash = ""
 
   end
 
@@ -144,7 +142,7 @@ class Game
         end
 
         if @cur_possible_moves.empty?
-          @flash = FLASH_MESSAGES[:invalid_move_check]
+          @flash.push FLASH_MESSAGES[:invalid_move_check]
           @input_state = :select_piece
           return
         end
@@ -153,7 +151,7 @@ class Game
 
 
       if @cur_possible_moves.count == 0
-        @flash = FLASH_MESSAGES[:no_moves_available]
+        @flash.push FLASH_MESSAGES[:no_moves_available]
         @input_state = :select_piece
       else
         @cur_possible_moves.each do |coord, move_type|
@@ -161,7 +159,7 @@ class Game
         end
       end
     else
-      @flash = FLASH_MESSAGES[:invalid_selection]
+      @flas.push FLASH_MESSAGES[:invalid_selection]
     end
   end
 
@@ -178,7 +176,7 @@ class Game
         @safe_moves = get_safe_moves
 
         if @safe_moves
-          @flash = "#{@cur_player.name}, you are in check! Your moves are limited."
+          @flash.push "#{@cur_player.name}, you are in check! Your moves are limited."
           # @safe_moves.each do |coord, move_type|
           #   #display.paint_square coord, move_type, :low_priority
           #   display.highlight_square coord, move_type, :low_priority
@@ -189,9 +187,9 @@ class Game
       end
     else
       if player_is_in_check?
-        @flash = FLASH_MESSAGES[:invalid_move_check]
+        @flash.push FLASH_MESSAGES[:invalid_move_check]
       else
-        @flash = FLASH_MESSAGES[:invalid_move]
+        @flash.push FLASH_MESSAGES[:invalid_move]
       end
       select_piece @cur_piece
     end
@@ -200,7 +198,7 @@ class Game
   def check_for_captured_piece_at(coord)
     piece = board.piece_at(coord)
     if piece.owner == other_player
-      @flash = FLASH_MESSAGES[:captured_piece].\
+      @flash.push FLASH_MESSAGES[:captured_piece].\
           gsub("<PLAYER>",piece.owner.name).\
           gsub("<PIECE>",piece.type.to_s)
     end
@@ -427,7 +425,7 @@ class Game
     # a quick move sequence for testing to get to checkmate quickly:
     #   c2 -> c4, d7 -> d6, d1 -> a4 (player 1 wins)
     @input_state = :game_won
-    @flash = FLASH_MESSAGES[:game_over].gsub("<PLAYER>", other_player.name)
+    @flash.push FLASH_MESSAGES[:game_over].gsub("<PLAYER>", other_player.name)
     (1..BOARD_MAX_COORD_X).each do |x|
       (1..BOARD_MAX_COORD_Y).each do |y|
         display.paint_square [x,y], :win_square
