@@ -86,7 +86,7 @@ class Game
   def prompt_for(state)
     # this determines what to display in each circumstance.
     if @flash
-      @flash.each { |msg| puts msg.colorize(color: :blue) }
+      @flash.uniq.each { |msg| puts msg.colorize(color: :blue) }
       @flash = []
     end
     puts " "
@@ -114,7 +114,9 @@ class Game
       # matches two-character commands beginning with a letter
       #   and ending with a number.
       process_command cmd
-    else; @flash.push FLASH_MESSAGES[:invalid_selection]
+    else
+      @flash.push FLASH_MESSAGES[:invalid_selection]
+      select_piece @cur_piece if @cur_piece
     end
 
   end
