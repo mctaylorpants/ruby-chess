@@ -143,9 +143,16 @@ class Game
       @flash.push "#{@cur_piece.type.capitalize} #{coord_for_pos(@cur_piece.position)}"
 
       if @check_state
-        # if we're in check and the possible moves for the piece isn't in safe moves
-        @cur_possible_moves = @cur_possible_moves.keep_if do |i|
-          @safe_moves.keys.include?(i)
+        if piece.type == :king
+          # if we're in check and the possible moves for the piece isn't in safe moves
+          @cur_possible_moves = @cur_possible_moves.keep_if do |i|
+            @safe_moves[:king] && @safe_moves[:king].keys.include?(i)
+          end
+        else
+          # if we're in check and the possible moves for the piece isn't in safe moves
+          @cur_possible_moves = @cur_possible_moves.keep_if do |i|
+            @safe_moves[:allies] && @safe_moves[:allies].keys.include?(i)
+          end
         end
 
         if @cur_possible_moves.empty?
@@ -153,11 +160,10 @@ class Game
           @input_state = :select_piece
           return
         end
-
       end
 
-
-      if @cur_possible_moves.count == 0
+      # non-check
+      if @cur_possible_moves.empty?
         @flash.push FLASH_MESSAGES[:no_moves_available]
         @input_state = :select_piece
       else
@@ -182,16 +188,13 @@ class Game
         #   also be checked against this array.
         @safe_moves = get_safe_moves
 
-        if @safe_moves
+        if @safe_moves.any?
           @flash.push "#{@cur_player.name}, you are in check! Your moves are limited."
-          # @safe_moves.each do |coord, move_type|
-          #   #display.paint_square coord, move_type, :low_priority
-          #   display.highlight_square coord, move_type, :low_priority
-          # end
         else
           game_over # !!
         end
       end
+
     else
       if player_is_in_check?
         @flash.push FLASH_MESSAGES[:invalid_move_check]
@@ -344,8 +347,6 @@ class Game
         array_of_moves[move] = :capture_piece if board.piece_at(move) && board.piece_at(move).owner == other_player
       end
 
-      # TODO pawn - promotion (should be implemented in another area)
-
     when :king
       # TODO king - castling
 
@@ -372,30 +373,22 @@ class Game
   end
 
   def player_is_in_check?
-    @cur_possible_moves = possible_moves_for @cur_piece
-    @cur_possible_moves.keys.each do |coord|
-      piece = board.piece_at coord
+    byebug
+    # the player is considered to be in check if any threat vectors exist
+    king_threat_vectors = possible_moves_for @cur_player.king,
+                                             generate_threat_vector: true
 
-      if piece.type == :king && piece.owner != @cur_piece.owner
-        @check_state = @cur_piece.owner
-        return true
-      end
-    end
+    @check_state = king_threat_vectors.values.include?(:threat_piece) ? true : false
 
-    @check_state = false
-    #false
+    @check_state
   end
 
   def get_safe_moves
-    # FIXME: since we're merging all the safe moves, there's a situation in which
-    #      the king has no legal moves, but another piece has a legal move
-    #      which overlaps with the king's potential movement, allowing the
-    #      king to move when it shouldn't be allowed to.
     # if a player is in check, return all the safe moves available that would
     #   would resolve check - if any!
 
-    # get the threat vectors for the current player's king. current
-    #   the 'current player' in this context is the one who is threatened.
+    # get the threat vectors for the current player's king.
+    # the 'current player' in this context is the one who is threatened.
     king_threat_vectors = possible_moves_for @cur_player.king,
                                              generate_threat_vector: true
 
@@ -432,12 +425,8 @@ class Game
     #   if one threat vector exists, the king OR a piece can resolve
     #   check. if two or more threat vectors exist, only the king
     #   has the potential to escape.
-
-    safe_moves.merge!(king_legal_moves)
-
-    if king_threat_vectors.values.count(:threat_piece) == 1
-      safe_moves.merge!(ally_legal_moves)
-    end
+    safe_moves[:king] = king_legal_moves if king_legal_moves.any?
+    safe_moves[:allies] = ally_legal_moves if ally_legal_moves.any? && king_threat_vectors.values.count(:threat_piece) == 1
     safe_moves
   end
 
