@@ -82,6 +82,7 @@ class Display
     when :pawn;           icon = " \u2659 ".colorize(color: :white, background: bgcolor).underline
     when :poss_move;      icon = " • ".colorize(color: :white, background: :light_magenta).blink
     when :capture_piece;  icon = " \u2620 ".colorize(color: :white, background: :light_red).blink
+    when :castling_move;  icon = " \u2194 ".colorize(color: :white, background: :light_magenta).blink
     when :dot_square;     icon = " • ".colorize(color: :black, background: bgcolor)
     when :win_square;     icon = " \u1F604 ".colorize(color: :white, background: :green).blink
     end # case

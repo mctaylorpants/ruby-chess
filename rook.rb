@@ -15,6 +15,9 @@ class Rook < Piece
                           [-1,0],
                           [0,1]
                         ]
+
+    # only the left rook can move [3,0] and only the right rook can move [-2,0]
+    @special_moves = { :castling => [[3,0],[-2,0]] }
   end
 
 end

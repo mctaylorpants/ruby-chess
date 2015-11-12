@@ -43,6 +43,7 @@ class Game
     :invalid_move =>         "Invalid move! Try again.",
     :invalid_move_check =>   "No moves available for that piece - protect your king!",
     :captured_piece =>       "You captured <PLAYER>'s <PIECE>!",
+    :castling =>             "(You may castle to <POS>)",
     :game_over =>            "<PLAYER> is victorious! Congratulations!"
   }
 
@@ -239,7 +240,6 @@ class Game
     #   would result in checkmate.
     legal_moves = generate_moves_along_path(this_piece, test_for_check)
     legal_moves = filter_special_moves this_piece, legal_moves
-
     legal_moves
   end
 
@@ -348,8 +348,9 @@ class Game
       end
 
     when :king
-      # TODO king - castling
-
+      # king - castling
+      castling_moves = get_castling_moves(piece)
+      array_of_moves.merge!(castling_moves) if castling_moves.any?
     end
 
     array_of_moves
@@ -359,21 +360,65 @@ class Game
     @cur_player == @player1 ? @player2 : @player1
   end
 
+  def get_castling_moves(piece)
+    # requirements:
+    #     The king and the chosen rook are on the player's first rank. (fulfilled by checking of # moves)
+    #     Neither the king nor the chosen rook has previously moved.
+    #     There are no pieces between the king and the chosen rook.
+    #     The king is not currently in check.
+    #     TODO The king does not pass through a square that is attacked by an enemy piece.
+    #     TODO The king does not end up in check. (True of any legal move.)
+    # 'v' will give us all the empty squares around the king. for each direction
+    # of castling, we simply need to check to ensure all the spaces are empty
+    # REFACTOR-castling
+    castling_moves = {}
+    return castling_moves if piece.moves == 0
+    return castling_moves if player_is_in_check?
+
+    v = generate_moves_along_path(piece, generate_threat_vector: true)
+    queenside = coord_add(piece.position, piece.special_moves(:castling).first)
+    kingside =  coord_add(piece.position, piece.special_moves(:castling).last)
+    valid_moves = []
+    y = @cur_player.home_base == :top ? 8 : 1
+    if v[[4,y]] == :poss_move &&
+         v[[3,y]] == :poss_move &&
+         v[[2,y]] == :poss_move &&
+         board.piece_at([1,y]).type == :rook &&
+         board.piece_at([1,y]).moves == 0
+
+      valid_moves.push "#{coord_for_pos(queenside)}"
+      castling_moves[queenside] = :castling_move
+    end
+
+    if v[[7,y]] == :poss_move &&
+         v[[6,y]] == :poss_move &&
+         board.piece_at([8,y]).type == :rook &&
+         board.piece_at([8,y]).moves == 0
+
+      valid_moves.push "#{coord_for_pos(kingside)}"
+      castling_moves[kingside] = :castling_move
+    end
+
+    @flash.push FLASH_MESSAGES[:castling].gsub("<POS>", valid_moves.join(" or ")) if valid_moves.any?
+
+    castling_moves
+  end
+
   def pos_for_coord(coord_string)
-    # converts a board coordinate (e.g. a4) into a proper coordinate
+    # converts a notational coordinate (e.g. a4) into a proper coordinate (1,4)
     x = NUMBER_FOR_LETTER[coord_string[0]]
     y = coord_string[1].to_i
     [x, y]
   end
 
   def coord_for_pos(pos_arr)
+    # converts a coordinate (1,1) into a notational coordinate (a1)
     x = NUMBER_FOR_LETTER.invert[pos_arr[0]]
     y = pos_arr[1]
     "#{x}#{y}"
   end
 
   def player_is_in_check?
-    byebug
     # the player is considered to be in check if any threat vectors exist
     king_threat_vectors = possible_moves_for @cur_player.king,
                                              generate_threat_vector: true
