@@ -372,35 +372,37 @@ class Game
     # of castling, we simply need to check to ensure all the spaces are empty
     # REFACTOR-castling
     castling_moves = {}
-    return castling_moves if piece.moves == 0
-    return castling_moves if player_is_in_check?
+    return castling_moves unless piece.moves == 0
+    return castling_moves if @check_state
 
     v = generate_moves_along_path(piece, generate_threat_vector: true)
     queenside = coord_add(piece.position, piece.special_moves(:castling).first)
     kingside =  coord_add(piece.position, piece.special_moves(:castling).last)
     valid_moves = []
     y = @cur_player.home_base == :top ? 8 : 1
-    if v[[4,y]] == :poss_move &&
-         v[[3,y]] == :poss_move &&
-         v[[2,y]] == :poss_move &&
-         board.piece_at([1,y]).type == :rook &&
-         board.piece_at([1,y]).moves == 0
 
-      valid_moves.push "#{coord_for_pos(queenside)}"
-      castling_moves[queenside] = :castling_move
+    # iterate through the queenside coordinates
+    [[4,y],[3,y],[2,y],queenside].each do |move|
+      next unless v[move] == :poss_move
+      next unless board.piece_at([1,y]).type == :rook &&
+      next unless board.piece_at([1,y]).moves == 0
+      # TODO: model each move and determine if king would be in check
+      castling_moves[queenside] ||= :castling_move
     end
 
-    if v[[7,y]] == :poss_move &&
-         v[[6,y]] == :poss_move &&
-         board.piece_at([8,y]).type == :rook &&
-         board.piece_at([8,y]).moves == 0
-
-      valid_moves.push "#{coord_for_pos(kingside)}"
-      castling_moves[kingside] = :castling_move
+    # iterate through the kingside coordinates
+    [[7,y],[6,y],kingside].each do |move|
+      next unless v[move] == :poss_move
+      next unless board.piece_at([8,y]).type == :rook &&
+      next unless board.piece_at([8,y]).moves == 0
+      # TODO: model each move and determine if king would be in check
+      castling_moves[kingside] ||= :castling_move
     end
+
+    valid_moves.push "#{coord_for_pos(queenside)}" if castling_moves[queenside]
+    valid_moves.push "#{coord_for_pos(kingside)}" if castling_moves[kingside]
 
     @flash.push FLASH_MESSAGES[:castling].gsub("<POS>", valid_moves.join(" or ")) if valid_moves.any?
-
     castling_moves
   end
 
@@ -497,22 +499,22 @@ class Game
     # add player 1 (bottom) pieces
     player = @player1
     (Rook.new(self, player)).add_to_board_at    [1,1]
-    (Knight.new(self, player)).add_to_board_at  [2,1]
-    (Bishop.new(self, player)).add_to_board_at  [3,1]
-    (Queen.new(self, player)).add_to_board_at   [4,1]
+    # (Knight.new(self, player)).add_to_board_at  [2,1]
+    # (Bishop.new(self, player)).add_to_board_at  [3,1]
+    # (Queen.new(self, player)).add_to_board_at   [4,1]
     (King.new(self, player)).add_to_board_at    [5,1]
-    (Bishop.new(self, player)).add_to_board_at  [6,1]
-    (Knight.new(self, player)).add_to_board_at  [7,1]
+    # (Bishop.new(self, player)).add_to_board_at  [6,1]
+    # (Knight.new(self, player)).add_to_board_at  [7,1]
     (Rook.new(self, player)).add_to_board_at    [8,1]
 
-    (Pawn.new(self, player)).add_to_board_at    [1,2]
-    (Pawn.new(self, player)).add_to_board_at    [2,2]
-    (Pawn.new(self, player)).add_to_board_at    [3,2]
-    (Pawn.new(self, player)).add_to_board_at    [4,2]
-    (Pawn.new(self, player)).add_to_board_at    [5,2]
-    (Pawn.new(self, player)).add_to_board_at    [6,2]
-    (Pawn.new(self, player)).add_to_board_at    [7,2]
-    (Pawn.new(self, player)).add_to_board_at    [8,2]
+    # (Pawn.new(self, player)).add_to_board_at    [1,2]
+    # (Pawn.new(self, player)).add_to_board_at    [2,2]
+    # (Pawn.new(self, player)).add_to_board_at    [3,2]
+    # (Pawn.new(self, player)).add_to_board_at    [4,2]
+    # (Pawn.new(self, player)).add_to_board_at    [5,2]
+    # (Pawn.new(self, player)).add_to_board_at    [6,2]
+    # (Pawn.new(self, player)).add_to_board_at    [7,2]
+    # (Pawn.new(self, player)).add_to_board_at    [8,2]
 
     # add player 2 (top) pieces
     player = @player2
