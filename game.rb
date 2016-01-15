@@ -434,6 +434,10 @@ class Game
     # if a player is in check, return all the safe moves available that would
     #   would resolve check - if any!
 
+    # get all the possible moves the enemy can make. we're looking for moves
+    #   that would overlap with the king.
+    enemy_possible_moves = possible_moves_for_pieces other_player.pieces
+
     # get the threat vectors for the current player's king.
     # the 'current player' in this context is the one who is threatened.
     king_threat_vectors = possible_moves_for @cur_player.king,
