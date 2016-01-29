@@ -1,4 +1,4 @@
-require "./piece.rb"
+require "piece"
 
 class NilPiece < Piece
   # this class provides a 'nil' piece object to use on the board when a spot

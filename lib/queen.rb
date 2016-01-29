@@ -1,4 +1,4 @@
-require "./piece.rb"
+require "piece"
 
 class Queen < Piece
 

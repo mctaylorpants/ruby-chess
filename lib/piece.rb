@@ -1,4 +1,4 @@
-require "./chess_helpers.rb"
+require "chess_helpers"
 
 class Piece
   include ChessHelpers
@@ -22,7 +22,10 @@ class Piece
     # the player object knows about all of their own pieces, so that we can do
     #   things like 'player.pieces'
     owner.assign_piece(self)
+  end
 
+  def api_move_to(coord)
+    @game.move_piece_to(self, pos_for_coord(coord))
   end
 
   def position

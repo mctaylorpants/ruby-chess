@@ -1,5 +1,5 @@
-require "./nil_piece.rb"
-require "./nil_player.rb"
+require "nil_piece"
+require "nil_player"
 
 class Board
   include ChessHelpers
@@ -7,6 +7,10 @@ class Board
 
   def initialize
     build_board
+  end
+
+  def board_state
+    @pieces
   end
 
   def add_piece(piece, pos_arr)

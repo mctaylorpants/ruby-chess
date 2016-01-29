@@ -2,44 +2,38 @@
 # TODO: if the user enters an invalid move, the possible moves stop flashing
 # TODO: implement checkmate properly. there are some bugs
 
-require "byebug" # for debugging purposes
-require "colorize"
-
-require "./chess_helpers.rb"
-require "./board.rb"
-require "./display.rb"
-require "./player.rb"
-require "./pawn.rb"
-require "./rook.rb"
-require "./knight.rb"
-require "./bishop.rb"
-require "./king.rb"
-require "./queen.rb"
+require "chess_helpers"
+require "board"
+require "display"
+require "player"
+require "pawn"
+require "rook"
+require "knight"
+require "bishop"
+require "king"
+require "queen"
 
 class Game
   include ChessHelpers
 
+  class InvalidSelectionError < ::StandardError; end
+
   # game objects
   attr_reader :turn
   attr_reader :board
+  attr_reader :cur_player
+  attr_reader :cur_possible_moves
   attr_reader :display
   attr_reader :state # this will hold the game's "state". is it player 1's turn?
                      #   has the player selected a piece? etc
-  attr_accessor :flash
 
-  # this is used to convert chess coordinates (e.g. a4) to standard x,y coords
-  NUMBER_FOR_LETTER = { "a" => 1,
-                        "b" => 2,
-                        "c" => 3,
-                        "d" => 4,
-                        "e" => 5,
-                        "f" => 6,
-                        "g" => 7,
-                        "h" => 8 }
+  # TODO: can this be read only?
+  attr_accessor :flash
 
   FLASH_MESSAGES = {
     :invalid_selection =>    "Invalid selection!",
     :no_moves_available =>   "No moves available for that piece",
+    :player_is_in_check =>   "<PLAYER>, you are in check! Your moves are limited.",
     :invalid_move =>         "Invalid move! Try again.",
     :invalid_move_check =>   "No moves available for that piece - protect your king!",
     :captured_piece =>       "You captured <PLAYER>'s <PIECE>!",
@@ -61,20 +55,16 @@ class Game
     @flash              = [] # for error messages, etc
     @cur_player         = @player1
     @cur_piece          = nil # once a player selects a piece, this stores it
-    @cur_possible_moves = nil # stores hash of the moves available to
+    @cur_possible_moves = Hash.new # stores hash of the moves available to
                               #    the currently-selected piece
     @safe_moves = nil # if a player is in check, this will display the possible moves
     add_pieces
-    main_loop
   end
 
-
-
-  private
+  # this is the heart of the chess game. this loop will run over and over
+  #   until the user exits. it updates the screen, prompts the user based
+  #   on the current state of the game, and waits for input.
   def main_loop
-    # this is the heart of the chess game. this loop will run over and over
-    #   until the user exits. it updates the screen, prompts the user based
-    #   on the current state of the game, and waits for input.
     while true
       display.update
       prompt_for @input_state
@@ -83,6 +73,53 @@ class Game
       # TODO: we have a game_over method here we can call when ready...
     end # while true
   end
+
+  def move_piece_to(coord)
+    success = true
+    piece = @cur_piece
+    coord = pos_for_coord(coord)
+    if piece && move_is_valid?(coord)
+      check_for_captured_piece_at(coord)
+      board.move_piece(piece, coord)
+      @turn += 1
+      toggle_player
+
+      if player_is_in_check?
+        # display these safe moves to the player; these are now
+        #   the only options they have, so their next move should
+        #   also be checked against this array.
+        @safe_moves = get_safe_moves
+
+        if @safe_moves.any?
+          @flash.push FLASH_MESSAGES[:player_is_in_check]
+        else
+          game_over # !!
+        end
+      end
+
+    else
+      success = false
+      if player_is_in_check?
+        @flash.push FLASH_MESSAGES[:invalid_move_check]
+      else
+        @flash.push FLASH_MESSAGES[:invalid_move]
+      end
+      select_piece piece
+    end
+
+    success
+  end
+
+  def select_piece_at(coord)
+    select_piece board.piece_at(pos_for_coord(coord))
+  end
+
+  def piece_at(coord)
+    piece = board.piece_at(pos_for_coord(coord))
+    { player: piece.owner.home_base, type: piece.type }
+  end
+
+  private
 
   def prompt_for(state)
     # this determines what to display in each circumstance.
@@ -125,13 +162,12 @@ class Game
   def process_command(cmd)
     case @input_state
     when :select_piece
-      select_piece board.piece_at(pos_for_coord(cmd))
+      select_piece_at(cmd)
     when :move_piece
       if cmd == "cancel"
         @input_state = :select_piece
       else
         move_piece_to(pos_for_coord(cmd))
-        @turn += 1
       end
     end
   end
@@ -174,35 +210,7 @@ class Game
       end
     else
       @flash.push FLASH_MESSAGES[:invalid_selection]
-    end
-  end
-
-  def move_piece_to(coord)
-    if @cur_piece && move_is_valid?(coord)
-      check_for_captured_piece_at(coord)
-      board.move_piece(@cur_piece, coord)
-      toggle_player
-
-      if player_is_in_check?
-        # display these safe moves to the player; these are now
-        #   the only options they have, so their next move should
-        #   also be checked against this array.
-        @safe_moves = get_safe_moves
-
-        if @safe_moves.any?
-          @flash.push "#{@cur_player.name}, you are in check! Your moves are limited."
-        else
-          game_over # !!
-        end
-      end
-
-    else
-      if player_is_in_check?
-        @flash.push FLASH_MESSAGES[:invalid_move_check]
-      else
-        @flash.push FLASH_MESSAGES[:invalid_move]
-      end
-      select_piece @cur_piece
+      raise InvalidSelectionError
     end
   end
 
@@ -420,6 +428,7 @@ class Game
     "#{x}#{y}"
   end
 
+
   def player_is_in_check?
     # get all the possible moves the enemy can make. we're looking for moves
     #   that would overlap with the king.
@@ -496,22 +505,22 @@ class Game
     # add player 1 (bottom) pieces
     player = @player1
     (Rook.new(self, player)).add_to_board_at    [1,1]
-    # (Knight.new(self, player)).add_to_board_at  [2,1]
-    # (Bishop.new(self, player)).add_to_board_at  [3,1]
-    # (Queen.new(self, player)).add_to_board_at   [4,1]
+    (Knight.new(self, player)).add_to_board_at  [2,1]
+    (Bishop.new(self, player)).add_to_board_at  [3,1]
+    (Queen.new(self, player)).add_to_board_at   [4,1]
     (King.new(self, player)).add_to_board_at    [5,1]
-    # (Bishop.new(self, player)).add_to_board_at  [6,1]
-    # (Knight.new(self, player)).add_to_board_at  [7,1]
+    (Bishop.new(self, player)).add_to_board_at  [6,1]
+    (Knight.new(self, player)).add_to_board_at  [7,1]
     (Rook.new(self, player)).add_to_board_at    [8,1]
 
-    # (Pawn.new(self, player)).add_to_board_at    [1,2]
-    # (Pawn.new(self, player)).add_to_board_at    [2,2]
-    # (Pawn.new(self, player)).add_to_board_at    [3,2]
-    # (Pawn.new(self, player)).add_to_board_at    [4,2]
-    # (Pawn.new(self, player)).add_to_board_at    [5,2]
-    # (Pawn.new(self, player)).add_to_board_at    [6,2]
-    # (Pawn.new(self, player)).add_to_board_at    [7,2]
-    # (Pawn.new(self, player)).add_to_board_at    [8,2]
+    (Pawn.new(self, player)).add_to_board_at    [1,2]
+    (Pawn.new(self, player)).add_to_board_at    [2,2]
+    (Pawn.new(self, player)).add_to_board_at    [3,2]
+    (Pawn.new(self, player)).add_to_board_at    [4,2]
+    (Pawn.new(self, player)).add_to_board_at    [5,2]
+    (Pawn.new(self, player)).add_to_board_at    [6,2]
+    (Pawn.new(self, player)).add_to_board_at    [7,2]
+    (Pawn.new(self, player)).add_to_board_at    [8,2]
 
     # add player 2 (top) pieces
     player = @player2

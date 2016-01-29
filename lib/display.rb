@@ -1,5 +1,5 @@
 require "colorize"
-require "./chess_helpers"
+require "chess_helpers"
 # REFACTOR: what's the best way to smartly require all these and have them be path-dependnet?
 
 # colorize examples:
