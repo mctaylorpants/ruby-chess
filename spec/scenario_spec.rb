@@ -1,35 +1,56 @@
-require 'game'
+require 'game_controller'
 
-RSpec.describe Game, "scenarios" do
-  subject(:game) { Game.new }
+RSpec.describe GameController do
+  context 'special moves' do
+    let(:gc) { GameController.new }
+    before { gc }
 
-  context "end game scenarios" do
-    it "results in check" do
-      game.api_select_piece(:player1, 'c2').api_move_to('c3')
-      game.api_select_piece(:player2, 'd7').api_move_to('d5')
-      game.api_select_piece(:player1, 'd1').api_move_to('a4')
-      expect(game.state).to eq(:check_player2)
+    it 'allows en passant' do
+      moves = gc.select_piece('c2')
+      expect(moves.keys).to include([3,3])
+      expect(moves.keys).to include([3,4])
     end
 
-    pending "results in checkmate" do
+    it 'only allows en passant once' do
+      gc.select_piece('c2')
+      gc.move_piece('c4')
 
+      gc.select_piece('a7')
+      gc.move_piece('a5')
+
+      moves = gc.select_piece('c4')
+      expect(moves.keys.count).to eq(1)
     end
+
+    it 'detects check' do
+      gc.select_piece('c2')
+      gc.move_piece('c3')
+
+      gc.select_piece('d7')
+      gc.move_piece('d5')
+
+      gc.select_piece('d1')
+      gc.move_piece('a4')
+      expect(gc.state).to eq(:check)
+    end
+
+    it 'detects checkmate' do
+      gc.select_piece('f2')
+      gc.move_piece('f4')
+
+      gc.select_piece('e7')
+      gc.move_piece('e5')
+
+      gc.select_piece('g2')
+      gc.move_piece('g4')
+
+      gc.select_piece('d8')
+      gc.move_piece('h4')
+
+      expect(gc.state).to eq(:checkmate)
+    end
+
+    pending 'allows castling'
+    pending 'allows pawn promotion'
   end
-
-  context "special moves" do
-    pending "allows the pawn to move two squares" do
-    end
-
-    pending "allows en passant rules" do
-    end
-
-    pending "allows castling" do
-    end
-  end
-
-  context "movement restrictions" do
-    pending "doesn't allow the king to move into check" do
-    end
-  end
-
 end

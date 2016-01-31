@@ -13,12 +13,20 @@ class GameController
   # Each element is a hash containing the home base and the piece type.
   # Example: { player: :bottom, piece: :rook}
   def board_state
-    @game.board.board_state.map do |row|
+    @game.board_state.map do |row|
       row.map do |piece|
         { player: piece.owner.home_base,
           piece:  piece.type }
       end
     end
+  end
+
+  # Returns a symbol describing the current state of the game. One of:
+  # :in_progress
+  # :check
+  # :checkmate
+  def state
+    @game.state
   end
 
   # Returns :bottom or :top, depending on who the current player is.

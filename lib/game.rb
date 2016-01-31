@@ -51,13 +51,13 @@ class Game
     @player1            = Player.new "Player 1", :bottom
     @player2            = Player.new "Player 2", :top
     @input_state        = :select_piece # select_piece
-    @check_state        = false # is a player in check?
     @flash              = [] # for error messages, etc
     @cur_player         = @player1
     @cur_piece          = nil # once a player selects a piece, this stores it
     @cur_possible_moves = Hash.new # stores hash of the moves available to
                               #    the currently-selected piece
-    @safe_moves = nil # if a player is in check, this will display the possible moves
+    @safe_moves         = nil # if a player is in check, this will display the possible moves
+    @state              = :in_progress
     add_pieces
   end
 
@@ -74,7 +74,12 @@ class Game
     end # while true
   end
 
+  def board_state
+    board.board_state
+  end
+
   def move_piece_to(coord)
+    @state = :in_progress
     success = true
     piece = @cur_piece
     coord = pos_for_coord(coord)
@@ -85,6 +90,7 @@ class Game
       toggle_player
 
       if player_is_in_check?
+        @state = :check
         # display these safe moves to the player; these are now
         #   the only options they have, so their next move should
         #   also be checked against this array.
@@ -93,6 +99,7 @@ class Game
         if @safe_moves.any?
           @flash.push FLASH_MESSAGES[:player_is_in_check]
         else
+          @state = :checkmate
           game_over # !!
         end
       end
@@ -179,7 +186,7 @@ class Game
       @cur_possible_moves = possible_moves_for @cur_piece
       @flash.push "#{@cur_piece.type.capitalize} #{coord_for_pos(@cur_piece.position)}"
 
-      if @check_state
+      if @state == :check
         if piece.type == :king
           # if we're in check and the possible moves for the piece isn't in safe moves
           @cur_possible_moves = @cur_possible_moves.keep_if do |i|
@@ -195,7 +202,6 @@ class Game
         if @cur_possible_moves.empty?
           @flash.push FLASH_MESSAGES[:invalid_move_check]
           @input_state = :select_piece
-          return
         end
       end
 
@@ -212,6 +218,8 @@ class Game
       @flash.push FLASH_MESSAGES[:invalid_selection]
       raise InvalidSelectionError
     end
+
+    @cur_possible_moves
   end
 
   def check_for_captured_piece_at(coord)
@@ -381,7 +389,7 @@ class Game
     # REFACTOR-castling
     castling_moves = {}
     return castling_moves unless piece.moves == 0
-    return castling_moves if @check_state
+    return castling_moves if @state == :check
 
     v = generate_moves_along_path(piece, generate_threat_vector: true)
     queenside = coord_add(piece.position, piece.special_moves(:castling).first)
@@ -433,7 +441,7 @@ class Game
     # get all the possible moves the enemy can make. we're looking for moves
     #   that would overlap with the king.
     enemy_possible_moves = possible_moves_for_pieces other_player.pieces
-    @check_state = enemy_possible_moves.keys.include? @cur_player.king.position
+    enemy_possible_moves.keys.include? @cur_player.king.position
   end
 
   def get_safe_moves
@@ -484,6 +492,7 @@ class Game
   end
 
   def game_over
+    return true
     # we use other_player here because we've already toggled to the other
     #   (defeated) player after moving the winning player's piece
 
