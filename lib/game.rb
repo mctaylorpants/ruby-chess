@@ -50,8 +50,8 @@ class Game
     @display            = Display.new board: @board
     @player1            = Player.new "Player 1", :bottom
     @player2            = Player.new "Player 2", :top
-    @input_state        = :select_piece # select_piece
-    @flash              = [] # for error messages, etc
+    @input_state        = :select_piece # select_piece # TODO: remove
+    @flash              = [] # for error messages, etc # TODO: remove
     @cur_player         = @player1
     @cur_piece          = nil # once a player selects a piece, this stores it
     @cur_possible_moves = Hash.new # stores hash of the moves available to
@@ -59,19 +59,6 @@ class Game
     @safe_moves         = nil # if a player is in check, this will display the possible moves
     @state              = :in_progress
     add_pieces
-  end
-
-  # this is the heart of the chess game. this loop will run over and over
-  #   until the user exits. it updates the screen, prompts the user based
-  #   on the current state of the game, and waits for input.
-  def main_loop
-    while true
-      display.update
-      prompt_for @input_state
-      input = gets.chomp
-      parse input
-      # TODO: we have a game_over method here we can call when ready...
-    end # while true
   end
 
   def board_state
@@ -126,58 +113,6 @@ class Game
     { player: piece.owner.home_base, type: piece.type }
   end
 
-  private
-
-  def prompt_for(state)
-    # this determines what to display in each circumstance.
-    if @flash
-      @flash.uniq.each { |msg| puts msg.colorize(color: :blue) }
-      @flash = []
-    end
-    puts " "
-    prompt = "(#{@cur_player.name}, #{@cur_player.home_base})"
-
-    case state
-    when :select_piece
-      string = "#{prompt} Select a piece (e.g. a1)"
-    when :move_piece
-      string = "#{prompt} Select a highlighted tile (or '" + "c".underline + "ancel')"
-    when :game_won
-      exit
-    end
-    print string + " > "
-
-  end
-
-  def parse(cmd)
-    # takes the user's string and decides what to do with it.
-    case cmd
-    when "exit", "x", "q"; exit
-    when "cancel", "c"; process_command cmd
-    when "byebug"; byebug
-    when cmd[/^[a^-hA-H][1-8]$/]
-      # matches two-character commands beginning with a letter
-      #   and ending with a number.
-      process_command cmd
-    else
-      @flash.push FLASH_MESSAGES[:invalid_selection]
-      select_piece @cur_piece if @cur_piece
-    end
-
-  end
-
-  def process_command(cmd)
-    case @input_state
-    when :select_piece
-      select_piece_at(cmd)
-    when :move_piece
-      if cmd == "cancel"
-        @input_state = :select_piece
-      else
-        move_piece_to(pos_for_coord(cmd))
-      end
-    end
-  end
 
   def select_piece(piece)
     if piece.owner == @cur_player

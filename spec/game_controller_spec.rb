@@ -24,7 +24,7 @@ RSpec.describe GameController do
     before { gc }
 
     it 'begins with player 1' do
-      expect(gc.current_player).to eq(:bottom)
+      expect(gc.current_player[:home_base]).to eq(:bottom)
     end
 
     it 'returns possible moves for a player 1 piece' do

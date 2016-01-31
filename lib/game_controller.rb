@@ -1,8 +1,11 @@
 require 'game'
 
 class GameController
+  attr_reader :board
+
   def initialize
     @game = Game.new
+    @board = @game.board
   end
 
   # Returns a nested array of the current board state.
@@ -31,7 +34,7 @@ class GameController
 
   # Returns :bottom or :top, depending on who the current player is.
   def current_player
-    @game.cur_player.home_base
+    { name: @game.cur_player.name, home_base: @game.cur_player.home_base }
   end
 
   # Selects a piece based on the notational coordinate and returns an array
