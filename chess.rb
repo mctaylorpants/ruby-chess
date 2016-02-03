@@ -1,3 +1,5 @@
+raise 'Ruby should be >= 2.2.0' unless RUBY_VERSION.to_f > 2.0
+
 lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.unshift(lib)
 require 'rubygems'
