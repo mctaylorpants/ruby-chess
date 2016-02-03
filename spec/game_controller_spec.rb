@@ -52,13 +52,13 @@ RSpec.describe GameController do
     it 'responds to move_piece' do
       gc.select_piece('c2')
       res = gc.move_piece('c4')
-      expect(res).to be true
+      expect(res[:state]).to be :success
     end
 
     it 'only performs legal moves' do
       gc.select_piece('c2')
       res = gc.move_piece('c7')
-      expect(res).to be false
+      expect(res[:state]).to be :invalid_move
       piece = gc.piece_at('c2')
       expect(piece[:type]).to eq(:pawn)
     end

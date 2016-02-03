@@ -70,6 +70,8 @@ class Game
     if piece && move_is_valid?(coord)
       result[:captured_piece] = check_for_captured_piece_at(coord)
       board.move_piece(piece, coord)
+      execute_castling(piece, coord) if @legal_castling_moves
+
       @turn += 1
       toggle_player
 
@@ -84,7 +86,7 @@ class Game
         if @safe_moves.empty?
           @state = :checkmate
           result[:state] = @state
-          game_over
+          #game_over
         end
       else
         @state = :in_progress
@@ -129,14 +131,12 @@ class Game
         end
 
         if @cur_possible_moves.empty?
-          @flash.push FLASH_MESSAGES[:invalid_move_check]
           @input_state = :select_piece
         end
       end
 
       # non-check
       if @cur_possible_moves.empty?
-        @flash.push FLASH_MESSAGES[:no_moves_available]
         @input_state = :select_piece
       else
         @cur_possible_moves.each do |coord, move_type|
@@ -144,7 +144,6 @@ class Game
         end
       end
     else
-      @flash.push FLASH_MESSAGES[:invalid_selection]
       raise InvalidSelectionError
     end
 
@@ -313,6 +312,7 @@ class Game
     # 'v' will give us all the empty squares around the king. for each direction
     # of castling, we simply need to check to ensure all the spaces are empty
     # REFACTOR-castling
+    @legal_castling_moves = nil
     castling_moves = {}
     return castling_moves unless piece.moves == 0
     return castling_moves if @state == :check
@@ -344,8 +344,21 @@ class Game
     valid_moves.push "#{coord_for_pos(queenside)}" if castling_moves[queenside]
     valid_moves.push "#{coord_for_pos(kingside)}" if castling_moves[kingside]
 
-    @flash.push FLASH_MESSAGES[:castling].gsub("<POS>", valid_moves.join(" or ")) if valid_moves.any?
-    castling_moves
+    #@flash.push FLASH_MESSAGES[:castling].gsub("<POS>", valid_moves.join(" or ")) if valid_moves.any?
+    @legal_castling_moves = castling_moves
+  end
+
+  def execute_castling(piece, coord)
+    return unless piece.type == :king && @legal_castling_moves.any?
+    y = coord[1]
+    case coord[0]
+    when 3
+      rook = board.piece_at([1,y])
+      board.move_piece(rook, [4,y])
+    when 7
+      rook = board.piece_at([8,y])
+      board.move_piece(rook, [6,y])
+    end
   end
 
   def pos_for_coord(coord_string)
@@ -417,21 +430,6 @@ class Game
     safe_moves
   end
 
-  def game_over
-    return true
-    # we use other_player here because we've already toggled to the other
-    #   (defeated) player after moving the winning player's piece
-
-    # a quick move sequence for testing to get to checkmate quickly:
-    #   c2 -> c4, d7 -> d6, d1 -> a4 (player 1 wins)
-    @input_state = :game_won
-    @flash.push FLASH_MESSAGES[:game_over].gsub("<PLAYER>", other_player.name)
-    (1..BOARD_MAX_COORD_X).each do |x|
-      (1..BOARD_MAX_COORD_Y).each do |y|
-        display.paint_square [x,y], :win_square
-      end
-    end
-  end
 
   def add_pieces
     # builds each piece for each player and puts it on the board.

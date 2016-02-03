@@ -15,7 +15,7 @@ FLASH_MESSAGES = {
   :invalid_move =>         "Invalid move! Try again.",
   :invalid_move_check =>   "No moves available for that piece - protect your king!",
   :captured_piece =>       "You captured a <PIECE>!",
-  :castling =>             "(You may castle to <POS>)",
+  :castling =>             "(You may castle your king)",
   :game_over =>            "CHECKMATE – <PLAYER> is victorious! Congratulations!"
 }
 
@@ -89,6 +89,10 @@ def select_piece(cmd)
       end
       @active_tile = cmd
       @input_state = :move_piece
+
+      if cur_possible_moves.values.include?(:castling_move)
+        @display.flash.push FLASH_MESSAGES[:castling]
+      end
 
     else
       @display.flash.push FLASH_MESSAGES[:no_moves_available]
