@@ -1,6 +1,6 @@
-require "./piece.rb"
-require "./queen.rb" # for promotional purposes :P
-require "./chess_helpers.rb"
+require "piece"
+require "queen" # for promotional purposes :P
+require "chess_helpers"
 
 class Pawn < Piece
   include ChessHelpers

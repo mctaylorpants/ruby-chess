@@ -1,11 +1,10 @@
-require "./piece.rb"
+require "piece"
 
-class King < Piece
+class Queen < Piece
 
   def initialize(game, owner)
     super
-    @type = :king
-    @jumps_to_target = true
+    @type = :queen
 
     # each array within possible_offsets is an x,y offset from the current
     #  position of the piece. the resulting target coordinates will be

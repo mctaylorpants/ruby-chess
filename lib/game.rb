@@ -2,49 +2,33 @@
 # TODO: if the user enters an invalid move, the possible moves stop flashing
 # TODO: implement checkmate properly. there are some bugs
 
-require "byebug" # for debugging purposes
-require "colorize"
-
-require "./chess_helpers.rb"
-require "./board.rb"
-require "./display.rb"
-require "./player.rb"
-require "./pawn.rb"
-require "./rook.rb"
-require "./knight.rb"
-require "./bishop.rb"
-require "./king.rb"
-require "./queen.rb"
+require "chess_helpers"
+require "board"
+require "display"
+require "player"
+require "pawn"
+require "rook"
+require "knight"
+require "bishop"
+require "king"
+require "queen"
 
 class Game
   include ChessHelpers
 
+  class InvalidSelectionError < ::StandardError; end
+
   # game objects
   attr_reader :turn
   attr_reader :board
+  attr_reader :cur_player
+  attr_reader :cur_possible_moves
   attr_reader :display
   attr_reader :state # this will hold the game's "state". is it player 1's turn?
                      #   has the player selected a piece? etc
+
+  # TODO: can this be read only?
   attr_accessor :flash
-
-  # this is used to convert chess coordinates (e.g. a4) to standard x,y coords
-  NUMBER_FOR_LETTER = { "a" => 1,
-                        "b" => 2,
-                        "c" => 3,
-                        "d" => 4,
-                        "e" => 5,
-                        "f" => 6,
-                        "g" => 7,
-                        "h" => 8 }
-
-  FLASH_MESSAGES = {
-    :invalid_selection =>    "Invalid selection!",
-    :no_moves_available =>   "No moves available for that piece",
-    :invalid_move =>         "Invalid move! Try again.",
-    :invalid_move_check =>   "No moves available for that piece - protect your king!",
-    :captured_piece =>       "You captured <PLAYER>'s <PIECE>!",
-    :game_over =>            "<PLAYER> is victorious! Congratulations!"
-  }
 
   BOARD_MAX_COORD_X = 8
   BOARD_MAX_COORD_Y = 8
@@ -55,85 +39,76 @@ class Game
     @display            = Display.new board: @board
     @player1            = Player.new "Player 1", :bottom
     @player2            = Player.new "Player 2", :top
-    @input_state        = :select_piece # select_piece
-    @check_state        = false # is a player in check?
-    @flash              = [] # for error messages, etc
+    @input_state        = :select_piece # select_piece # TODO: remove
+    @flash              = [] # for error messages, etc # TODO: remove
     @cur_player         = @player1
     @cur_piece          = nil # once a player selects a piece, this stores it
-    @cur_possible_moves = nil # stores hash of the moves available to
+    @cur_possible_moves = Hash.new # stores hash of the moves available to
                               #    the currently-selected piece
-    @safe_moves = nil # if a player is in check, this will display the possible moves
+    @safe_moves         = nil # if a player is in check, this will display the possible moves
+    @state              = :in_progress
     add_pieces
-    main_loop
   end
 
-
-
-  private
-  def main_loop
-    # this is the heart of the chess game. this loop will run over and over
-    #   until the user exits. it updates the screen, prompts the user based
-    #   on the current state of the game, and waits for input.
-    while true
-      display.update
-      prompt_for @input_state
-      input = gets.chomp
-      parse input
-      # TODO: we have a game_over method here we can call when ready...
-    end # while true
+  def board_state
+    board.board_state
   end
 
-  def prompt_for(state)
-    # this determines what to display in each circumstance.
-    if @flash
-      @flash.uniq.each { |msg| puts msg.colorize(color: :blue) }
-      @flash = []
-    end
-    puts " "
-    prompt = "(#{@cur_player.name}, #{@cur_player.home_base})"
+  def move_piece_to(coord)
+    piece = @cur_piece
+    coord = pos_for_coord(coord)
 
-    case state
-    when :select_piece
-      string = "#{prompt} Select a piece (e.g. a1)"
-    when :move_piece
-      string = "#{prompt} Select a highlighted tile (or '" + "c".underline + "ancel')"
-    when :game_won
-      exit
-    end
-    print string + " > "
+    result = {
+      player: @cur_player.home_base,
+      piece: @cur_piece.type,
+      original_position: coord_for_pos(@cur_piece.position),
+      new_position: coord,
+      state: :success,
+      captured_piece: nil
+    }
 
-  end
+    if piece && move_is_valid?(coord)
+      result[:captured_piece] = check_for_captured_piece_at(coord)
+      board.move_piece(piece, coord)
+      execute_castling(piece, coord) if @legal_castling_moves
 
-  def parse(cmd)
-    # takes the user's string and decides what to do with it.
-    case cmd
-    when "exit", "x", "q"; exit
-    when "cancel", "c"; process_command cmd
-    when "byebug"; byebug
-    when cmd[/^[a^-hA-H][1-8]$/]
-      # matches two-character commands beginning with a letter
-      #   and ending with a number.
-      process_command cmd
-    else
-      @flash.push FLASH_MESSAGES[:invalid_selection]
-      select_piece @cur_piece if @cur_piece
-    end
+      @turn += 1
+      toggle_player
 
-  end
+      if player_is_in_check?
+        @state = :check
+        result[:state] = @state
+        # display these safe moves to the player; these are now
+        #   the only options they have, so their next move should
+        #   also be checked against this array.
+        @safe_moves = get_safe_moves
 
-  def process_command(cmd)
-    case @input_state
-    when :select_piece
-      select_piece board.piece_at(pos_for_coord(cmd))
-    when :move_piece
-      if cmd == "cancel"
-        @input_state = :select_piece
+        if @safe_moves.empty?
+          @state = :checkmate
+          result[:state] = @state
+          #game_over
+        end
       else
-        move_piece_to(pos_for_coord(cmd))
-        @turn += 1
+        @state = :in_progress
       end
+
+    else
+      result[:state] = player_is_in_check? ? :invalid_move_check : :invalid_move
+      select_piece piece
     end
+
+    result
   end
+
+  def select_piece_at(coord)
+    select_piece board.piece_at(pos_for_coord(coord))
+  end
+
+  def piece_at(coord)
+    piece = board.piece_at(pos_for_coord(coord))
+    { player: piece.owner.home_base, type: piece.type }
+  end
+
 
   def select_piece(piece)
     if piece.owner == @cur_player
@@ -142,7 +117,7 @@ class Game
       @cur_possible_moves = possible_moves_for @cur_piece
       @flash.push "#{@cur_piece.type.capitalize} #{coord_for_pos(@cur_piece.position)}"
 
-      if @check_state
+      if @state == :check
         if piece.type == :king
           # if we're in check and the possible moves for the piece isn't in safe moves
           @cur_possible_moves = @cur_possible_moves.keep_if do |i|
@@ -156,15 +131,12 @@ class Game
         end
 
         if @cur_possible_moves.empty?
-          @flash.push FLASH_MESSAGES[:invalid_move_check]
           @input_state = :select_piece
-          return
         end
       end
 
       # non-check
       if @cur_possible_moves.empty?
-        @flash.push FLASH_MESSAGES[:no_moves_available]
         @input_state = :select_piece
       else
         @cur_possible_moves.each do |coord, move_type|
@@ -172,45 +144,16 @@ class Game
         end
       end
     else
-      @flash.push FLASH_MESSAGES[:invalid_selection]
+      raise InvalidSelectionError
     end
-  end
 
-  def move_piece_to(coord)
-    if @cur_piece && move_is_valid?(coord)
-      check_for_captured_piece_at(coord)
-      board.move_piece(@cur_piece, coord)
-      toggle_player
-
-      if player_is_in_check?
-        # display these safe moves to the player; these are now
-        #   the only options they have, so their next move should
-        #   also be checked against this array.
-        @safe_moves = get_safe_moves
-
-        if @safe_moves.any?
-          @flash.push "#{@cur_player.name}, you are in check! Your moves are limited."
-        else
-          game_over # !!
-        end
-      end
-
-    else
-      if player_is_in_check?
-        @flash.push FLASH_MESSAGES[:invalid_move_check]
-      else
-        @flash.push FLASH_MESSAGES[:invalid_move]
-      end
-      select_piece @cur_piece
-    end
+    @cur_possible_moves
   end
 
   def check_for_captured_piece_at(coord)
     piece = board.piece_at(coord)
     if piece.owner == other_player
-      @flash.push FLASH_MESSAGES[:captured_piece].\
-          gsub("<PLAYER>",piece.owner.name).\
-          gsub("<PIECE>",piece.type.to_s)
+      return piece.type
     end
   end
 
@@ -239,7 +182,6 @@ class Game
     #   would result in checkmate.
     legal_moves = generate_moves_along_path(this_piece, test_for_check)
     legal_moves = filter_special_moves this_piece, legal_moves
-
     legal_moves
   end
 
@@ -304,7 +246,6 @@ class Game
     # REFACTOR: all the game logic is going here. is there a better place we can
     #   store this?
     array_of_moves = legal_moves.dup
-
     case piece.type
     when :pawn
       # pawn - remove forward capture
@@ -313,7 +254,7 @@ class Game
       end
 
       # pawn - opening move
-      if piece.moves == 0
+      if piece.moves == 0 && legal_moves.any?
         opening_move = coord_add(piece.position, piece.special_moves(:opening_move))
         if board.piece_at(opening_move).type == :nil_piece &&
            board.piece_at(legal_moves.first[0]).type == :nil_piece
@@ -348,8 +289,9 @@ class Game
       end
 
     when :king
-      # TODO king - castling
-
+      # king - castling
+      castling_moves = get_castling_moves(piece)
+      array_of_moves.merge!(castling_moves) if castling_moves.any?
     end
 
     array_of_moves
@@ -359,28 +301,86 @@ class Game
     @cur_player == @player1 ? @player2 : @player1
   end
 
+  def get_castling_moves(piece)
+    # requirements:
+    #     The king and the chosen rook are on the player's first rank. (fulfilled by checking of # moves)
+    #     Neither the king nor the chosen rook has previously moved.
+    #     There are no pieces between the king and the chosen rook.
+    #     The king is not currently in check.
+    #     TODO The king does not pass through a square that is attacked by an enemy piece.
+    #     TODO The king does not end up in check. (True of any legal move.)
+    # 'v' will give us all the empty squares around the king. for each direction
+    # of castling, we simply need to check to ensure all the spaces are empty
+    # REFACTOR-castling
+    @legal_castling_moves = nil
+    castling_moves = {}
+    return castling_moves unless piece.moves == 0
+    return castling_moves if @state == :check
+
+    v = generate_moves_along_path(piece, generate_threat_vector: true)
+    queenside = coord_add(piece.position, piece.special_moves(:castling).first)
+    kingside =  coord_add(piece.position, piece.special_moves(:castling).last)
+    valid_moves = []
+    y = @cur_player.home_base == :top ? 8 : 1
+
+    # iterate through the queenside coordinates
+    [[4,y],[3,y],[2,y],queenside].each do |move|
+      next unless v[move] == :poss_move
+      next unless board.piece_at([1,y]).type == :rook &&
+      next unless board.piece_at([1,y]).moves == 0
+      # TODO: model each move and determine if king would be in check
+      castling_moves[queenside] ||= :castling_move
+    end
+
+    # iterate through the kingside coordinates
+    [[7,y],[6,y],kingside].each do |move|
+      next unless v[move] == :poss_move
+      next unless board.piece_at([8,y]).type == :rook &&
+      next unless board.piece_at([8,y]).moves == 0
+      # TODO: model each move and determine if king would be in check
+      castling_moves[kingside] ||= :castling_move
+    end
+
+    valid_moves.push "#{coord_for_pos(queenside)}" if castling_moves[queenside]
+    valid_moves.push "#{coord_for_pos(kingside)}" if castling_moves[kingside]
+
+    #@flash.push FLASH_MESSAGES[:castling].gsub("<POS>", valid_moves.join(" or ")) if valid_moves.any?
+    @legal_castling_moves = castling_moves
+  end
+
+  def execute_castling(piece, coord)
+    return unless piece.type == :king && @legal_castling_moves.any?
+    y = coord[1]
+    case coord[0]
+    when 3
+      rook = board.piece_at([1,y])
+      board.move_piece(rook, [4,y])
+    when 7
+      rook = board.piece_at([8,y])
+      board.move_piece(rook, [6,y])
+    end
+  end
+
   def pos_for_coord(coord_string)
-    # converts a board coordinate (e.g. a4) into a proper coordinate
+    # converts a notational coordinate (e.g. a4) into a proper coordinate (1,4)
     x = NUMBER_FOR_LETTER[coord_string[0]]
     y = coord_string[1].to_i
     [x, y]
   end
 
   def coord_for_pos(pos_arr)
+    # converts a coordinate (1,1) into a notational coordinate (a1)
     x = NUMBER_FOR_LETTER.invert[pos_arr[0]]
     y = pos_arr[1]
     "#{x}#{y}"
   end
 
+
   def player_is_in_check?
-    byebug
-    # the player is considered to be in check if any threat vectors exist
-    king_threat_vectors = possible_moves_for @cur_player.king,
-                                             generate_threat_vector: true
-
-    @check_state = king_threat_vectors.values.include?(:threat_piece) ? true : false
-
-    @check_state
+    # get all the possible moves the enemy can make. we're looking for moves
+    #   that would overlap with the king.
+    enemy_possible_moves = possible_moves_for_pieces other_player.pieces
+    enemy_possible_moves.keys.include? @cur_player.king.position
   end
 
   def get_safe_moves
@@ -430,20 +430,6 @@ class Game
     safe_moves
   end
 
-  def game_over
-    # we use other_player here because we've already toggled to the other
-    #   (defeated) player after moving the winning player's piece
-
-    # a quick move sequence for testing to get to checkmate quickly:
-    #   c2 -> c4, d7 -> d6, d1 -> a4 (player 1 wins)
-    @input_state = :game_won
-    @flash.push FLASH_MESSAGES[:game_over].gsub("<PLAYER>", other_player.name)
-    (1..BOARD_MAX_COORD_X).each do |x|
-      (1..BOARD_MAX_COORD_Y).each do |y|
-        display.paint_square [x,y], :win_square
-      end
-    end
-  end
 
   def add_pieces
     # builds each piece for each player and puts it on the board.
