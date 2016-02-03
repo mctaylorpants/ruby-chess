@@ -85,6 +85,7 @@ def process_command(cmd)
     else
       @game.move_piece(cmd)
       @display.reset_display
+      @input_state = :select_piece
     end
   end
 end
