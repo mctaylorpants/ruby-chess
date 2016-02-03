@@ -15,8 +15,9 @@ require "chess_helpers"
 # puts "This is uncolorized".blue.on_red.uncolorize
 
 class CliDisplay
-  # guess what - display will handle the graphics!
   include ChessHelpers
+
+  attr_reader :flash
 
   def initialize(board:)
     # pass Display a board object so it can read it
@@ -24,6 +25,7 @@ class CliDisplay
     @board = board
     @buf_low_priority  = Buffer.new_buffer # this will get passed in from game
     @buf_high_priority = Buffer.new_buffer # for adding highlights and possible moves to the buffer
+    @flash = [] # for error messages, etc
   end
 
   def update(board)
@@ -85,7 +87,7 @@ class CliDisplay
     when :capture_piece;  icon = " \u2620 ".colorize(color: :white, background: :light_red).blink
     when :castling_move;  icon = " \u2194 ".colorize(color: :white, background: :light_magenta).blink
     when :dot_square;     icon = " • ".colorize(color: :black, background: bgcolor)
-    when :win_square;     icon = " \u1F604 ".colorize(color: :white, background: :green).blink
+    when :win_square;     icon = " \u263A ".colorize(color: :white, background: :green).blink
     end # case
     node = "#{icon}#{sep}"
   end
@@ -140,6 +142,12 @@ class CliDisplay
     end
 
     puts "•  a   b   c   d   e   f   g   h   •".colorize(color: :green)
+    puts " "
+
+    if @flash
+      @flash.uniq.each { |msg| puts msg.colorize(color: :blue) }
+      @flash = []
+    end
 
   end
 

@@ -30,17 +30,6 @@ class Game
   # TODO: can this be read only?
   attr_accessor :flash
 
-  FLASH_MESSAGES = {
-    :invalid_selection =>    "Invalid selection!",
-    :no_moves_available =>   "No moves available for that piece",
-    :player_is_in_check =>   "<PLAYER>, you are in check! Your moves are limited.",
-    :invalid_move =>         "Invalid move! Try again.",
-    :invalid_move_check =>   "No moves available for that piece - protect your king!",
-    :captured_piece =>       "You captured <PLAYER>'s <PIECE>!",
-    :castling =>             "(You may castle to <POS>)",
-    :game_over =>            "<PLAYER> is victorious! Congratulations!"
-  }
-
   BOARD_MAX_COORD_X = 8
   BOARD_MAX_COORD_Y = 8
 
@@ -66,42 +55,47 @@ class Game
   end
 
   def move_piece_to(coord)
-    @state = :in_progress
-    success = true
     piece = @cur_piece
     coord = pos_for_coord(coord)
+
+    result = {
+      player: @cur_player.home_base,
+      piece: @cur_piece.type,
+      original_position: coord_for_pos(@cur_piece.position),
+      new_position: coord,
+      state: :success,
+      captured_piece: nil
+    }
+
     if piece && move_is_valid?(coord)
-      check_for_captured_piece_at(coord)
+      result[:captured_piece] = check_for_captured_piece_at(coord)
       board.move_piece(piece, coord)
       @turn += 1
       toggle_player
 
       if player_is_in_check?
         @state = :check
+        result[:state] = @state
         # display these safe moves to the player; these are now
         #   the only options they have, so their next move should
         #   also be checked against this array.
         @safe_moves = get_safe_moves
 
-        if @safe_moves.any?
-          @flash.push FLASH_MESSAGES[:player_is_in_check]
-        else
+        if @safe_moves.empty?
           @state = :checkmate
-          game_over # !!
+          result[:state] = @state
+          game_over
         end
+      else
+        @state = :in_progress
       end
 
     else
-      success = false
-      if player_is_in_check?
-        @flash.push FLASH_MESSAGES[:invalid_move_check]
-      else
-        @flash.push FLASH_MESSAGES[:invalid_move]
-      end
+      result[:state] = player_is_in_check? ? :invalid_move_check : :invalid_move
       select_piece piece
     end
 
-    success
+    result
   end
 
   def select_piece_at(coord)
@@ -160,9 +154,7 @@ class Game
   def check_for_captured_piece_at(coord)
     piece = board.piece_at(coord)
     if piece.owner == other_player
-      @flash.push FLASH_MESSAGES[:captured_piece].\
-          gsub("<PLAYER>",piece.owner.name).\
-          gsub("<PIECE>",piece.type.to_s)
+      return piece.type
     end
   end
 
@@ -255,7 +247,6 @@ class Game
     # REFACTOR: all the game logic is going here. is there a better place we can
     #   store this?
     array_of_moves = legal_moves.dup
-
     case piece.type
     when :pawn
       # pawn - remove forward capture
@@ -264,7 +255,7 @@ class Game
       end
 
       # pawn - opening move
-      if piece.moves == 0
+      if piece.moves == 0 && legal_moves.any?
         opening_move = coord_add(piece.position, piece.special_moves(:opening_move))
         if board.piece_at(opening_move).type == :nil_piece &&
            board.piece_at(legal_moves.first[0]).type == :nil_piece

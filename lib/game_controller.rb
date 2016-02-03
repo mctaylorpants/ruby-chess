@@ -70,6 +70,6 @@ class GameController
   # With a currently selected piece, moves that piece to the specified
   # notational coordinate. Returns a status hash.
   def move_piece(coord)
-    res = @game.move_piece_to(coord)
+    @game.move_piece_to(coord)
   end
 end
